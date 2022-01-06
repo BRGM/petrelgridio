@@ -1,28 +1,5 @@
 import numpy as np
 
-class Point3d:
-    def __init__(self, xyz):
-        self.coords = xyz
-    
-    @classmethod
-    def origin(cls):
-        return Point3d(0., 0., 0.)
-    
-    @property
-    def coords(self):
-        return self._coords
-        
-    @coords.setter
-    def coords(self, other):
-        assert(other.ndim == 1)
-        assert(other.size == 3)
-        assert(other.dtype == np.float64)
-        self._coords = np.copy(other) # FIXME Necessary? Keep for security?
-    
-    def __iadd__(self, other):
-        assert isinstance(other, Point3d)
-        self._coords += other.coords
-
 
 class Primitive:
     DIMENSION = 3 # We work exclusively in a 3D space
@@ -51,6 +28,10 @@ class Primitive:
     @property
     def vertices(self):
         return self._vertices
+    
+    @property
+    def nb_vertices(self):
+        return self.vertices.size
 
 
 class Primitive2d(Primitive):

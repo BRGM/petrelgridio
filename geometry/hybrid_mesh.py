@@ -108,10 +108,39 @@ class HybridMesh:
         return self._connectivity
 
     def set_vertices(self, vertices):
-        self._vertices = [Point3d(xyz) for xyz in vertices]
+        assert vertices.ndim == 2
+        assert vertices.shape[1] == Primitive.DIMENSION
+        self._vertices = np.copy(vertices) # FIXME Is copy necessary?
 
     def set_connectivity_cells_nodes(self, cells):
         self._connectivity.set_cells_nodes(cells)
         
     def update_from_cell_nodes(self):
         self._connectivity.update_from_cell_nodes()
+
+    def cells_nodes_as_COC(self):
+        # Step 1: Compute cells "pointers" (offset of the 1st cell vertex)
+        pointers = np.zeros(self.connectivity.nb_cells, dtype=np.int64)
+        cell_idx = 0
+        counter_vertices = 0
+        for cell in self.connectivity.cells_nodes:
+            counter_vertices += cell.nb_vertices
+            pointers[cell_idx] = counter_vertices
+            cell_idx += 1
+        #Step 2: Write cells vertices indices
+        nodes = np.zeros(counter_vertices, dtype=np.int64)
+        assert self.connectivity.nb_cells == pointers.size
+        cur_offset = 0
+        for cell, cell_offset in zip(self.connectivity.cells_nodes, pointers):
+            nodes[cur_offset:cell_offset] = cell.vertices
+            cur_offset = cell_offset
+
+        return pointers, nodes
+    
+    def cells_vtk_ids(self):
+        vtk_ids = np.zeros(self.connectivity.nb_cells, dtype=np.int64)
+        cell_idx = 0
+        for cell in self.connectivity.cells_nodes:
+            vtk_ids[cell_idx] = cell.VTK_ELEMENT_ID
+            cell_idx += 1
+        return vtk_ids

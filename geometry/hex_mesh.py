@@ -6,6 +6,7 @@ from geometry.primitives import Hexahedron
 class HexMesh:
     @classmethod
     def make(cls, vertices, hexahedra):
+        # FIXME Add assert about type/shape/datatype/...
         mesh = HexMesh()
         mesh.vertices = vertices
         mesh.cells = hexahedra
@@ -26,14 +27,14 @@ class HexMesh:
 
     @vertices.setter
     def vertices(self, vertices):
-        assert(vertices.ndim == 2)
-        assert(vertices.shape[1] == Hexahedron.DIMENSION)
+        assert vertices.ndim == 2
+        assert vertices.shape[1] == Hexahedron.DIMENSION
         self._vertices = np.copy(vertices) # FIXME Necessary? Keep for security?
     
     @cells.setter
     def cells(self, hexahedra):
-        assert(hexahedra.ndim == 2)
-        assert(hexahedra.shape[1] == Hexahedron.NB_VERTICES)
+        assert hexahedra.ndim == 2
+        assert hexahedra.shape[1] == Hexahedron.NB_VERTICES
         self._cells = np.copy(hexahedra) # FIXME Necessary? Keep for security?
 
     def update_connectivity_from_cellnodes(self):
@@ -43,10 +44,5 @@ class HexMesh:
         return np.full(self._cells.shape[0], Hexahedron.VTK_ELEMENT_ID)
 
     def cells_nodes_as_COC(self):
-        print("print(self.cells):")
-        print(type(self.cells))
-        print(self.cells.shape)
-        print(type(self.cells[0]))
-        print(self.cells)
         return Hexahedron.NB_VERTICES * np.arange(1, self._cells.shape[0] + 1), self._cells
     

@@ -27,14 +27,14 @@ class TetMesh:
 
     @vertices.setter
     def vertices(self, vertices):
-        assert(vertices.ndim == 2)
-        assert(vertices.shape[1] == Tetrahedron.DIMENSION)
+        assert vertices.ndim == 2 
+        assert vertices.shape[1] == Tetrahedron.DIMENSION 
         self._vertices = np.copy(vertices) # FIXME Necessary? Keep for security?
     
     @cells.setter
     def cells(self, tetrahedra):
-        assert(tetrahedra.ndim == 2)
-        assert(tetrahedra.shape[1] == Tetrahedron.NB_VERTICES)
+        assert tetrahedra.ndim == 2
+        assert tetrahedra.shape[1] == Tetrahedron.NB_VERTICES
         self._cells = np.copy(tetrahedra) # FIXME Necessary? Keep for security?
 
     def update_connectivity_from_cellnodes(self):

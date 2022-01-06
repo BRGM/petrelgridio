@@ -11,24 +11,20 @@ data_folder = "/mnt/d/Documents/clausolles/Workspace/TESTS/PetrelGridIO/tests/da
 
 
 def test_export_to_vtu():
-    ###### Test models #####
+    ##### Test models #####
 
     # name = "20X20X6.GRDECL"
     # name = "Simple3x3x1.grdecl"
     # name = "Simple3x3x3.grdecl"
     # name = "Simple20x20x5.grdecl"
 
-    ###### Build grid #####
+    ##### Build grid #####
     name = "Simple20x20x5_Fault.grdecl" # FIXME Pourquoi ça marche ?
     grid = PetrelGrid.build_from_files(data_folder + name)
 
-    ###### Build mesh #####
+    ##### Build hex mesh #####
     hexa, vertices, cell_faces, face_nodes = grid.process()
-    mesh = HexMesh.make(vertices, hexa)
-
-    ###### Export #####
-
-    # to_vtu(HexMesh.make(dummy_grids.depth_to_elevation(vertices), hexa), name) 
+    mesh = HexMesh.make(vertices, hexa) 
     to_vtu(mesh, name)
 
     ##### Build raw mesh #####
@@ -38,7 +34,11 @@ def test_export_to_vtu():
         f"Splitted {name} mesh with: {hybrid_mesh.nb_vertices} vertices, {hybrid_mesh.nb_cells} cells, {hybrid_mesh.nb_faces} faces"
     )
     # FIXME Start here
-    to_vtu(hybrid_mesh, f"{name}_splitted", celldata={"original_cell": original_cell}) 
+    to_vtu(hybrid_mesh, f"{name}_splitted", celldata={"original_cell": original_cell})
+
+    ##### Build with faults #####
+    # TODO 
+
 
 def test_dummy_grid():
     # Test 1: common_node
