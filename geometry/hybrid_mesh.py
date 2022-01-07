@@ -29,12 +29,13 @@ class Connectivity:
 
     def set_cells_nodes(self, cells):
         self._cells_nodes = [Primitive3d.builder(c) for c in cells]
+        self._update_from_cell_nodes()
         
-    def update_from_cell_nodes(self):
-        self.update_faces_from_cell_nodes()
-        self.collect_cells_faces()
+    def _update_from_cell_nodes(self):
+        self._update_faces_from_cell_nodes()
+        self._collect_cells_faces()
 
-    def update_faces_from_cell_nodes(self):
+    def _update_faces_from_cell_nodes(self):
         """
         A face is shared by 2 siblings cells (except faces on borders). Here, we
         build a list storing for each face in the model the IDs of the 2 cells it
@@ -77,16 +78,17 @@ class Connectivity:
         # List of faces, ordered by increasing face_id
         self._faces_nodes = [f for f, _ in sorted(self._faces_ids.items(), key=lambda t: t[1])]
     
-    def collect_cells_faces(self):
+    def _collect_cells_faces(self):
         self._cells_faces = [[self._faces_ids[Primitive2d.get_face_from_facet(f)] for f in c.facets()] 
                              for c in self.cells_nodes]
 
 
 class HybridMesh:
-    def __init__(self):
-        self._vertices = [] # FIXME
+    def __init__(self, vertices, cells):
+        self.vertices = vertices
         self._connectivity = Connectivity()
-    
+        self._connectivity.set_cells_nodes(cells)
+
     @property
     def vertices(self):
         return self._vertices
@@ -107,16 +109,11 @@ class HybridMesh:
     def connectivity(self):
         return self._connectivity
 
-    def set_vertices(self, vertices):
+    @vertices.setter
+    def vertices(self, vertices):
         assert vertices.ndim == 2
         assert vertices.shape[1] == Primitive.DIMENSION
         self._vertices = np.copy(vertices) # FIXME Is copy necessary?
-
-    def set_connectivity_cells_nodes(self, cells):
-        self._connectivity.set_cells_nodes(cells)
-        
-    def update_from_cell_nodes(self):
-        self._connectivity.update_from_cell_nodes()
 
     def cells_nodes_as_COC(self):
         # Step 1: Compute cells "pointers" (offset of the 1st cell vertex)
@@ -136,7 +133,7 @@ class HybridMesh:
             cur_offset = cell_offset
 
         return pointers, nodes
-    
+
     def cells_vtk_ids(self):
         vtk_ids = np.zeros(self.connectivity.nb_cells, dtype=np.int64)
         cell_idx = 0

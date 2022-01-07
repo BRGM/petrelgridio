@@ -342,15 +342,10 @@ class RawMesh:
             Rewritten... To test! # FIXME
         """
         vertices, cells, original = self._new_cells(
-            kept_cells=self.tetrahedron_cells() | self.hexahedron_cells(), # On ne garde que les tet & hex (fuck les pyramides/prismes)
+            kept_cells=self.tetrahedron_cells() | self.hexahedron_cells(), # On ne garde que les tet & hex?
             kept_faces=self.triangle_faces() | self.quadrangle_faces(),
             cell_centers=cell_centers,
             face_centers=face_centers,
         )
         
-        mesh = HybridMesh() # TODO Hide in construtor
-        mesh.set_vertices(vertices)
-        mesh.set_connectivity_cells_nodes(cells)
-        mesh.update_from_cell_nodes()
-
-        return mesh, original
+        return HybridMesh(vertices, cells), original
