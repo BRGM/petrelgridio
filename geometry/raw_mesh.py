@@ -2,7 +2,7 @@ from itertools import chain
 import numpy as np
 
 from geometry.hybrid_mesh import HybridMesh
-from geometry.tet_mesh import TetMesh
+from geometry.uniform_mesh import TetMesh
 
 
 def _align_face_and_edge(F, e):
@@ -335,7 +335,7 @@ class RawMesh:
         )
         cells = np.array(cells, dtype=np.int64) # FIXME Ok ?
         assert cells.ndim == 2 and cells.shape[1] == 4
-        return TetMesh.make(vertices, cells), original
+        return TetMesh(vertices, cells), original
 
     def as_hybrid_mesh(self, cell_centers=None, face_centers=None):
         """
@@ -348,7 +348,7 @@ class RawMesh:
             face_centers=face_centers,
         )
         
-        mesh = HybridMesh()
+        mesh = HybridMesh() # TODO Hide in construtor
         mesh.set_vertices(vertices)
         mesh.set_connectivity_cells_nodes(cells)
         mesh.update_from_cell_nodes()

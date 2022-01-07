@@ -1,5 +1,5 @@
 from geometry.petrel_grid import PetrelGrid
-from geometry.hex_mesh import HexMesh
+from geometry.uniform_mesh import HexMesh
 from geometry.hybrid_mesh import HybridMesh
 from geometry.raw_mesh import RawMesh
 from ios.vtu import to_vtu
@@ -19,12 +19,12 @@ def test_export_to_vtu():
     # name = "Simple20x20x5.grdecl"
 
     ##### Build grid #####
-    name = "Simple20x20x5_Fault.grdecl" # FIXME Pourquoi ça marche ?
+    name = "Simple20x20x5_Fault.grdecl"
     grid = PetrelGrid.build_from_files(data_folder + name)
 
     ##### Build hex mesh #####
     hexa, vertices, cell_faces, face_nodes = grid.process()
-    mesh = HexMesh.make(vertices, hexa) 
+    mesh = HexMesh(vertices, hexa)
     to_vtu(mesh, name)
 
     ##### Build raw mesh #####
@@ -33,7 +33,6 @@ def test_export_to_vtu():
     print(
         f"Splitted {name} mesh with: {hybrid_mesh.nb_vertices} vertices, {hybrid_mesh.nb_cells} cells, {hybrid_mesh.nb_faces} faces"
     )
-    # FIXME Start here
     to_vtu(hybrid_mesh, f"{name}_splitted", celldata={"original_cell": original_cell})
 
     ##### Build with faults #####
@@ -50,7 +49,7 @@ def test_dummy_grid():
     
     hexa, vertices, cell_faces, face_nodes = grid.process()
     dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh.make(vertices, hexa)
+    mesh = HexMesh(vertices, hexa)
     to_vtu(mesh, name)
     
     # Test 2: sugar_box
@@ -62,7 +61,7 @@ def test_dummy_grid():
     
     hexa, vertices, cell_faces, face_nodes = grid.process()
     dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh.make(vertices, hexa)
+    mesh = HexMesh(vertices, hexa)
     to_vtu(mesh, name)
     
     # Test 3: stairs
@@ -74,7 +73,7 @@ def test_dummy_grid():
     
     hexa, vertices, cell_faces, face_nodes = grid.process()
     dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh.make(vertices, hexa)
+    mesh = HexMesh(vertices, hexa)
     to_vtu(mesh, name)
     
     # Test 4: ramp
@@ -86,5 +85,5 @@ def test_dummy_grid():
     
     hexa, vertices, cell_faces, face_nodes = grid.process()
     dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh.make(vertices, hexa)
+    mesh = HexMesh(vertices, hexa)
     to_vtu(mesh, name)
