@@ -844,7 +844,10 @@ class PetrelGrid(object):
                             permz.append(self.permz[i, j, k])
         return permx, permy, permz
 
-    def _process_faults(self, cells):
+    def process_faults(self, cells):
+        print("[WARNING] PetrelGrid.process_faults() is not implemented yet.")
+        print("          This step was skipped.")
+        return self.pvertices, self.cells_faces.tolist(), self.faces_nodes.tolist() # FIXME
         faces_nodes = self.faces_nodes
         new_faces_nodes = faces_nodes.tolist()
         cells_faces = self.cells_faces.tolist()

@@ -1,10 +1,8 @@
 from geometry.petrel_grid import PetrelGrid
 from geometry.uniform_mesh import HexMesh
-from geometry.hybrid_mesh import HybridMesh
 from geometry.raw_mesh import RawMesh
 from ios.vtu import to_vtu
-
-import geometry.dummy_petrel_grids as dg
+from tests.utils import *
 
 
 data_folder = "/mnt/d/Documents/clausolles/Workspace/TESTS/PetrelGridIO/tests/data/"
@@ -17,9 +15,9 @@ def test_export_to_vtu():
     # name = "Simple3x3x1.grdecl"
     # name = "Simple3x3x3.grdecl"
     # name = "Simple20x20x5.grdecl"
+    name = "Simple20x20x5_Fault.grdecl"
 
     ##### Build grid #####
-    name = "Simple20x20x5_Fault.grdecl"
     grid = PetrelGrid.build_from_files(data_folder + name)
 
     ##### Build hex mesh #####
@@ -40,50 +38,5 @@ def test_export_to_vtu():
 
 
 def test_dummy_grid():
-    # Test 1: common_node
-    name = "common_node"
-    print(f"  test 1: {name}")
-    hexahedra = dg.common_node()
-    pillars = dg.pillars(hexahedra)
-    grid = PetrelGrid.build_from_arrays__for_dummy_grids(pillars[..., :3], pillars[..., 3:], hexahedra[..., 2])
-    
-    hexa, vertices, cell_faces, face_nodes = grid.process()
-    dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, name)
-    
-    # Test 2: sugar_box
-    name = "sugar_box"
-    print(f"  test 2: {name}")
-    hexahedra = dg.grid_of_heaxaedra((4, 3, 2))
-    pillars = dg.pillars(hexahedra)
-    grid = PetrelGrid.build_from_arrays__for_dummy_grids(pillars[..., :3], pillars[..., 3:], hexahedra[..., 2])
-    
-    hexa, vertices, cell_faces, face_nodes = grid.process()
-    dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, name)
-    
-    # Test 3: stairs
-    name = "stairs"
-    print(f"  test 3: {name}")
-    hexahedra = dg.four_cells_stairs()
-    pillars = dg.pillars(hexahedra)
-    grid = PetrelGrid.build_from_arrays__for_dummy_grids(pillars[..., :3], pillars[..., 3:], hexahedra[..., 2])
-    
-    hexa, vertices, cell_faces, face_nodes = grid.process()
-    dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, name)
-    
-    # Test 4: ramp
-    name = "ramp"
-    print(f"  test 4: {name}")
-    hexahedra = dg.faulted_ramp((8, 2, 1), begin=0.33)
-    pillars = dg.pillars(hexahedra)
-    grid = PetrelGrid.build_from_arrays__for_dummy_grids(pillars[..., :3], pillars[..., 3:], hexahedra[..., 2])
-    
-    hexa, vertices, cell_faces, face_nodes = grid.process()
-    dg.depth_to_elevation(vertices) # Je ne sais pas pourquoi, mais c'est dans le test de MeshTools...
-    mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, name)
+    for test in BasicTest:
+        run_basic_test(test)
