@@ -5,9 +5,6 @@ from ios.vtu import to_vtu
 from tests.utils import *
 
 
-data_folder = "/mnt/d/Documents/clausolles/Workspace/TESTS/PetrelGridIO/tests/data/"
-
-
 def test_export_to_vtu():
     ##### Test models #####
 

@@ -8,11 +8,24 @@ from ios.vtu import to_vtu
 import geometry.dummy_petrel_grids as dg
 
 
+data_folder = "tests/data/"
+output_folder = "tests/output/"
+
+
 class BasicTest(Enum):
     COMMON_NODE = "common_node"
     SUGAR_BOX = "sugar_box"
     STAIRS = "stairs"
     RAMP = "ramp"
+    
+    @property
+    def name(self):
+        return self.value
+
+    @property
+    def file_name(self):
+        """ Returns the name to give to the output VTU file (without the".vtu" extension)"""
+        return output_folder + self.name
 
     def create_data(self):
         """ Returns the input list of hexahedra associated with the test"""
@@ -26,10 +39,6 @@ class BasicTest(Enum):
             return dg.faulted_ramp((8, 2, 1), begin=0.33)
         else:
             raise AttributeError("Test in not known in BasicTest.create_data()")
-    
-    @property
-    def name(self):
-        return self.value
 
 
 def run_basic_test(test):
@@ -46,13 +55,13 @@ def run_basic_test(test):
     # Without faults
     ## Creates and exports HexMesh
     mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, test.name + "_hexmesh")
+    to_vtu(mesh, test.file_name + "_hexmesh")
     ## Creates and exports RawMesh
     mesh = RawMesh(vertices=vertices, face_nodes=faces_nodes, cell_faces=cells_faces)
     print(
         f"Original {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} hexaedra, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, test.name + "_rawmesh")
+    to_vtu(mesh, test.file_name + "_rawmesh")
 
     # Split at faults
     # Creates and exports HybridMesh
@@ -62,4 +71,4 @@ def run_basic_test(test):
     print(
         f"Splitted {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, test.name + "_hybridmesh", celldata={"original_cell": original_cell})
+    to_vtu(mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell}) # FIXME celldata ?
