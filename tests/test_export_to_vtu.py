@@ -14,26 +14,36 @@ def test_export_to_vtu():
     # name = "Simple20x20x5.grdecl"
     name = "Simple20x20x5_Fault.grdecl"
 
-    ##### Build grid #####
+    # Creates a PetrelGrid object
     grid = PetrelGrid.build_from_files(data_folder + name)
-
-    ##### Build hex mesh #####
     hexa, vertices, cell_faces, face_nodes = grid.process()
+
+    # Without faults
+    ## Creates and exports HexMesh
     mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, name)
-
-    ##### Build raw mesh #####
-    raw_mesh = RawMesh(vertices=vertices, face_nodes=face_nodes, cell_faces=cell_faces)
-    hybrid_mesh, original_cell = raw_mesh.as_hybrid_mesh()
+    to_vtu(mesh, output_folder + name + "_hexmesh")
+    ## Creates and exports RawMesh
+    mesh = RawMesh(vertices=vertices, face_nodes=face_nodes, cell_faces=cell_faces)
     print(
-        f"Splitted {name} mesh with: {hybrid_mesh.nb_vertices} vertices, {hybrid_mesh.nb_cells} cells, {hybrid_mesh.nb_faces} faces"
+        f"Original {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} hexaedra, {mesh.nb_faces} faces"
     )
-    to_vtu(hybrid_mesh, f"{name}_splitted", celldata={"original_cell": original_cell})
+    to_vtu(mesh, output_folder + name + "_rawmesh")
 
-    ##### Build with faults #####
-    # TODO 
+    # Split at faults
+    # Creates and exports HybridMesh
+    vertices, cells_faces, faces_nodes = grid.process_faults(hexa)
+    mesh = RawMesh(vertices=vertices, face_nodes=faces_nodes, cell_faces=cells_faces)
+    mesh, original_cell = mesh.as_hybrid_mesh()
+    print(
+        f"Splitted {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
+    )
+    to_vtu(mesh, output_folder + name + "_hybridmesh", celldata={"original_cell": original_cell}) # FIXME celldata ?
 
 
 def test_dummy_grid():
     for test in BasicTest:
         run_basic_test(test)
+
+
+def test_dummy_grid_fault_ramp():
+    run_basic_test(BasicTest.RAMP)

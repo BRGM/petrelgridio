@@ -1,13 +1,7 @@
 import numpy as np
-import sys, re, os
 
-# from .. import _MeshTools as MT
-# from .. import utils
-# import vtkwriters as vtkw
-# from .. import PetrelMesh as PM
-# from .. import RawMesh as RM
 from geometry.edge_utils import *
-# from ..io.face_id import is_same_face
+from geometry.petrel_mesh import mesh
 
 # 2--3
 # |  |
@@ -96,21 +90,21 @@ def map_pillar_edges(edges, nodes):
         noeuds, noeuds_new = [], []
         for node in nodes:
             if noeuds and len(noeuds) < 2:
-                noeuds_new.append(node)
+                noeuds_new.append(node) # Executed only ONCE
             if node in edge:
                 if not noeuds:
-                    noeuds_new.append(node)
+                    noeuds_new.append(node) # Executed only ONCE
                 noeuds.append(node)
         assert len(noeuds) == 2
         assert Edge(noeuds[0], noeuds[1]) == edge
         assert Edge(noeuds_new[0], noeuds_new[-1]) == edge
         assert edge not in new_edges
-        if len(noeuds_new) > 2:
+        if len(noeuds_new) > 2: # FIXME Condition impossible to meet?
             new_edges[edge] = [
                 Edge(noeuds_new[u], noeuds_new[u + 1])
                 for u in range(len(noeuds_new) - 1)
             ]
-    return new_edges
+    return new_edges # FIXME If so, new_edges always empty...
 
 
 def update_faces_nodes(faces_nodes_list, faces_edges, edges, map_edges):
@@ -171,54 +165,90 @@ def set_faces_nodes(cells):
 
 def detect_fault(segs1, segs2, pvertices):
     mask = (segs1 != -1) & (segs2 != -1)
-    diff = pvertices[segs2][..., 2] - pvertices[segs1][..., 2]
+    diff = pvertices[segs2][..., 2] - pvertices[segs1][..., 2] # Compare Z of 
     diff = diff[mask]
-    if np.nonzero(diff)[0].shape[0] != 0:
-        return True
+    if np.nonzero(diff)[0].shape[0] != 0: # nonzero returns a tuple with 1 elt per array dim
+        return True                       # we only need to check one dim, to check for nonzero
 
 
-def build_segs(i, j, corner_ids):
-    segs1 = np.stack(
-        [corner_ids[i + 1, j, :, 1], corner_ids[i + 1, j + 1, :, 3]], axis=-1
+def build_segs(ix, iy, corner_ids):
+    """
+    Idea:
+     * Definitions:
+       * north/south = Y axis, north direction = increasing Y values, south direction = 
+                       decreasing Y values
+       * east/west = X axis, east direction = increasing X values, west direction = 
+                       decreasing X values
+       * A pillar = a vertical column of hexahedra in the model
+                    pillar(ix, iy) = pillar defined by cells (ix, iy, :)
+                    a pillar have 4 vertical faces: notrh, south, east and west
+     * Algorithm: 
+       * For a given pillar(ix, iy), we compare:
+         - the horizontal edges of its north face with the horizontal edges of the
+           south face of the pillar(ix, iy + 1) to detect faults along Y
+         - the horizontal edges of its east face with the horizontal edges of the
+           west face of the pillar(ix + 1, iy) to detect faults along X
+       * Note: the "fault detection" step is done later in `detect_fault(...)`. Here
+         we only compute the sequences of edges that will be sent to  `detect_fault(...)`
+       * Example of the Y face:
+         * segs1 = [upper_north_edge for each hexahedron in pillar(ix, iy)]
+         * segs2 = [lower_north_edge for each hexahedron in pillar(ix, iy)]
+         * segsY1 = segs1.append(segs2[-1]). # that's the "general idea", it's a bit
+           smarter in practice =)
+         * segs3 = [upper_south_edge for each hexahedron in pillar(ix, iy + 1)]
+         * segs4 = [lower_south_edge for each hexahedron in pillar(ix, iy + 1)]
+         * segsY2 = segs3.append(segs4[-1]). # that's the "general idea", it's a bit
+           smarter in practice =)
+         * in `detect_fault(...)`, we compare segsY1 and segsY2
+       * For the X face, it's the same with pillar(ix, iy) and pillar(ix + 1, iy),
+         and east/west faces.
+       * Final note: in practice, indices might be different from what is presented
+         here (i.e., I might inverted north/south directions, but you still have the
+         general idea of the algorithm !)
+    """
+    segs1 = np.stack( # [Column (X+1, Y), all Z, V1], [Column (X+1, Y+1), all Z, V3]
+        [corner_ids[ix + 1, iy, :, 1], corner_ids[ix + 1, iy + 1, :, 3]], axis=-1
     )
-    segs2 = np.stack(
-        [corner_ids[i + 1, j, :, 5], corner_ids[i + 1, j + 1, :, 7]], axis=-1
+    segs2 = np.stack( # [Column (X+1, Y), all Z, V5], [Column (X+1, Y+1), all Z, V7]
+        [corner_ids[ix + 1, iy, :, 5], corner_ids[ix + 1, iy + 1, :, 7]], axis=-1
     )
-    segsY1 = np.where(segs1 == -1, segs2, segs1)
+    segsY1 = np.where(segs1 == -1, segs2, segs1) # [segs1 or segs2 if segs1 is masked]
+
     segs3 = np.stack(
-        [corner_ids[i + 1, j, :, 0], corner_ids[i + 1, j + 1, :, 2]], axis=-1
+        [corner_ids[ix + 1, iy, :, 0], corner_ids[ix + 1, iy + 1, :, 2]], axis=-1
     )
     segs4 = np.stack(
-        [corner_ids[i + 1, j, :, 4], corner_ids[i + 1, j + 1, :, 6]], axis=-1
+        [corner_ids[ix + 1, iy, :, 4], corner_ids[ix + 1, iy + 1, :, 6]], axis=-1
     )
     segsY2 = np.where(segs3 == -1, segs4, segs3)
+
     segs1 = np.stack(
-        [corner_ids[i, j + 1, :, 2], corner_ids[i + 1, j + 1, :, 3]], axis=-1
+        [corner_ids[ix, iy + 1, :, 2], corner_ids[ix + 1, iy + 1, :, 3]], axis=-1
     )
     segs2 = np.stack(
-        [corner_ids[i, j + 1, :, 6], corner_ids[i + 1, j + 1, :, 7]], axis=-1
+        [corner_ids[ix, iy + 1, :, 6], corner_ids[ix + 1, iy + 1, :, 7]], axis=-1
     )
     segsX1 = np.where(segs1 == -1, segs2, segs1)
     segs3 = np.stack(
-        [corner_ids[i, j + 1, :, 0], corner_ids[i + 1, j + 1, :, 1]], axis=-1
+        [corner_ids[ix, iy + 1, :, 0], corner_ids[ix + 1, iy + 1, :, 1]], axis=-1
     )
     segs4 = np.stack(
-        [corner_ids[i, j + 1, :, 4], corner_ids[i + 1, j + 1, :, 5]], axis=-1
+        [corner_ids[ix, iy + 1, :, 4], corner_ids[ix + 1, iy + 1, :, 5]], axis=-1
     )
     segsX2 = np.where(segs3 == -1, segs4, segs3)
     return segsY1, segsY2, segsX1, segsX2
 
 
-def build_segs_pils(self, segs1, segs2, i, j, u, v, pvertices):
-    segs1 = segs1[segs1 != -1].reshape(-1, 2)
-    segs2 = segs2[segs2 != -1].reshape(-1, 2)
-    segs_glo = np.vstack([segs1, segs2])
-    nodes1 = np.unique(pillar_edges(self.corner_ids, i + u, j + v, self.nz))
+def build_segs_pils(grid, segs1, segs2, i, j, u, v, pvertices):
+    segs1 = segs1[segs1 != -1].reshape(-1, 2) # "segsY1"
+    segs2 = segs2[segs2 != -1].reshape(-1, 2) # "segsY2"
+    segs_glo = np.vstack([segs1, segs2]) # segs1.append_elements(segs2)
+    nodes1 = np.unique(pillar_edges(grid.corner_ids, i + u, j + v, grid.nz))
     asort = np.argsort(pvertices[nodes1][..., 2])
-    nodes1 = nodes1[asort]
-    nodes2 = np.unique(pillar_edges(self.corner_ids, i + 1, j + 1, self.nz))
+    nodes1 = nodes1[asort] # All nodes indices on "face 1" ?
+    nodes2 = np.unique(pillar_edges(grid.corner_ids, i + 1, j + 1, grid.nz))
     asort = np.argsort(pvertices[nodes2][..., 2])
-    nodes2 = nodes2[asort]
+    nodes2 = nodes2[asort] # All nodes indices on "face 2" ?
     return segs_glo, nodes1, nodes2
 
 
@@ -231,18 +261,24 @@ def pillar_referential_tri(pts):
 
 
 def new_coord_tri(pillarpts, O, e):
-    res = np.sum((pillarpts - O) * e, axis=1)
-    e2 = np.sum(e * e)
+    """
+    Used to compute the projection of pillar points onto a 2D space.
+    Note: here, we only compute the 2nd coordinate (the first one is either 0 o 1,
+    see triangulate()) 
+    """
+    res = np.sum((pillarpts - O) * e, axis=1) # Projection onto a 2D space
+    e2 = np.sum(e * e) # Square norm of e
     assert e2 > 0
     res /= e2
     return res
 
 
 def map_edges_tri(segs_glo, nodes1, nodes2, pvertices):
-    asort1 = np.argsort(pvertices[segs_glo[:, 0]][:, 2])
-    asort2 = np.argsort(pvertices[segs_glo[:, 1]][:, 2])
+    asort1 = np.argsort(pvertices[segs_glo[:, 0]][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
+    asort2 = np.argsort(pvertices[segs_glo[:, 1]][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
     no = segs_glo[:, 0][asort1]
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
+    # edges = list of vertical edges, sorted according to Z
     map_edges = map_pillar_edges(edges, nodes1)
     no = segs_glo[:, 1][asort2]
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
@@ -294,22 +330,29 @@ def update_faces_tri(faces, map_edges):
 
 
 def triangulate(segs_glo, nodes1, nodes2, pvertices):
+    # Step 1: Pojection of 3D points onto a 2D space (the "fault plane")
     map_edges = map_edges_tri(segs_glo, nodes1, nodes2, pvertices)
     nmap, segs_tri, vertices_tri = build_segs_tri(segs_glo, pvertices)
     _, indices = np.unique(segs_tri[:, 0], return_index=True)
-    tri1 = segs_tri[:, 0][indices]
+    tri1 = segs_tri[:, 0][indices] # 1st v of each e?
     _, indices = np.unique(segs_tri[:, 1], return_index=True)
-    tri2 = segs_tri[:, 1][indices]
+    tri2 = segs_tri[:, 1][indices] # 2nd v of each e?
     vertices1 = vertices_tri[tri1]
     vertices2 = vertices_tri[tri2]
     Oback, uback = pillar_referential_tri(vertices1)
     Ofront, ufront = pillar_referential_tri(vertices2)
-    nv1 = np.zeros((vertices1.shape[0], 2))
-    nv2 = np.ones((vertices2.shape[0], 2))
+    nv1 = np.zeros((vertices1.shape[0], 2)) # Projected 2D points
+    nv2 = np.ones((vertices2.shape[0], 2)) # Projected 2D points
     nv1[:, 1] = new_coord_tri(vertices1, Oback, uback)
     nv2[:, 1] = new_coord_tri(vertices2, Ofront, ufront)
-    nv = np.vstack([nv1, nv2])
-    assert False, "Fix call to PetrelMesh & CGAL before using faults"
+    nv = np.vstack([nv1, nv2]) # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
+
+    # Step 2: triangulation of the 2D space
+    mesh(nv.astype("float64"), segs_tri)
+
+    # assert False, "Fix call to PetrelMesh & CGAL before using faults"
+    
+    # WIP: Replace PM.mesh(...)  by mesh(...). Needs to finish mesh
     uv, triangles, components, faces = PM.mesh(nv.astype("float64"), segs_tri) # FIXME Call to C++ PetrelMesnh & CGAL
     uv2 = np.reshape(uv[:, 0], (-1, 1)) * (
         Ofront + np.tensordot(uv[:, 1], ufront, axes=0)
@@ -482,14 +525,14 @@ def replace_old_new_faces(cells_faces, map_faces):
 
 
 def solve_fault(
-    self, i, j, axe, pvertices, cells_faces, faces_nodes, map_edges, map_faces
+    grid, i, j, axe, pvertices, cells_faces, faces_nodes, map_edges, map_faces
 ):
     segs1, segs2 = axe[0]
     ipil, jpil = axe[1]
     iverts = axe[2]
     iface1, iface2 = axe[3]
     segs_glo, nodes1, nodes2 = build_segs_pils(
-        self, segs1, segs2, i, j, ipil, jpil, pvertices
+        grid, segs1, segs2, i, j, ipil, jpil, pvertices
     )
     nv, uv2, pvertices, components, triangles, faces_tri = triangulate(
         segs_glo, nodes1, nodes2, pvertices
@@ -497,12 +540,12 @@ def solve_fault(
     sides = {1: [i, j, iface1, segs1], 2: [i + ipil, j + jpil, iface2, segs2]}
     for key in sides.keys():
         w = sides[key]
-        numcells = self.numcells[w[0], w[1]]
+        numcells = grid.numcells[w[0], w[1]]
         cells_num, cells_comp = get_cells(
             uv2[:, iverts], triangles, components, w[3], pvertices[:, iverts], numcells
         )
         faces_nodes, map_faces, map_edges = map_old_new_faces_and_edges(
-            self,
+            grid,
             cells_num,
             cells_comp,
             cells_faces,
@@ -580,7 +623,7 @@ class PetrelGrid(object):
                 # self.mapaxes = np.asarray(next(f).strip().split(' ')[:-1],
                 # 'float')
                 if line.startswith("SPECGRID"):
-                    self.specgrid = self.nx, self.ny, self.nz = np.asarray(
+                    self.specgrid = self.nx, self.ny, self.nz = np.asarray( # FIXME C'est pas très jojo tout ça...
                         # next(f).strip().split(" ")[:-3], "int" # FIXME Dans mes exemples il n'y a que 2 valeurs à supprimer
                         next(f).strip().split(" ")[:-2], "int"
                     )
@@ -679,12 +722,15 @@ class PetrelGrid(object):
 
     @classmethod
     def build_from_arrays__for_dummy_grids(self, pillar_tops, pillar_bottoms, zcorn):
-        """ Only used for test dummy_grid from MeshTools """ # FIXME
+        """ Only used for test dummy_grid from MeshTools """
+        # FIXME Fixer les fixme suivants (faire attention, il en existe peut-être plus)
+        #       Appel du type : PetrelGrid.build_from_arrays__for_dummy_grids(p1, p2, p3)
+        #       => les self.attributs désignent des attributs de classe et non d'instance ! <smiley_qui_vomit> !
         grid = PetrelGrid()
         ncx, ncy, dim = pillar_tops.shape
         assert dim == 3
         nx, ny = ncx - 1, ncy - 1
-        self.nx = nx
+        self.nx = nx # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent nx, ny et nz ??? 
         self.ny = ny
         self.nz = zcorn.shape[2]
         assert nx > 0 and ny > 0
@@ -696,7 +742,7 @@ class PetrelGrid(object):
                 pillars[i, j, 3:] = pillar_bottoms[i, j, :]
         grid.zcorn = zcorn
         grid.build_grid(pillars)
-        self.permx = None
+        self.permx = None # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent permx, permy et permz ??? 
         self.permy = None
         self.permz = None
         return grid
@@ -775,23 +821,23 @@ class PetrelGrid(object):
         # Boucle l'ensemble des noeuds de la grille
         for zci, zc in enumerate(zpil):
             #  Boucle sur les "noeuds" des noeuds de la grille
-            for j in range(len(zc)):  # len(z) = 8
+            for iy in range(len(zc)):  # len(z) = 8
                 # Boucle sur les 8 valeurs de zc
-                for k in range(j):
-                    if zc[k] == zc[j]:
-                        new_ids[j] = new_ids[k]
+                for iz in range(iy):
+                    if zc[iz] == zc[iy]:
+                        new_ids[iy] = new_ids[iz]
                         break
                 #  Détection d'un décalage en z : possible faille
                 else:
                     # Si z = 9999., point masqué on ne le rajoute pas
-                    if zc[j] != 9999.0:
-                        X = (xpil[zci][j], ypil[zci][j], zc[j])
+                    if zc[iy] != 9999.0:
+                        X = (xpil[zci][iy], ypil[zci][iy], zc[iy])
                         if X not in vertices:
-                            new_ids[j] = len(vertices)
+                            new_ids[iy] = len(vertices)
                             vertices.append(X)
                         else:
                             indice = vertices.index(X)
-                            new_ids[j] = indice
+                            new_ids[iy] = indice
             ids.append(np.copy(new_ids))  # la copie est importante ici
         # normalement ici on a le tableaux des vertices et 'yapluka' construire tous les hexagones
         vertices = np.array(vertices)
@@ -800,10 +846,10 @@ class PetrelGrid(object):
         corner_ids = corner_ids.reshape((self.nx + 1, self.ny + 1, self.nz + 1, 8))
         # Boucle imbriquée
         hexahedra = []
-        for i in range(self.nx):
-            for j in range(self.ny):
-                for k in range(self.nz):
-                    if self.mask_cells[i, j, k] == 1:
+        for ix in range(self.nx):
+            for iy in range(self.ny):
+                for iz in range(self.nz):
+                    if self.mask_cells[ix, iy, iz] == 1:
                         # Attention ! Les noeuds de l'hexaedre sont
                         # définis dans le sens vtk.
                         # C'est à dire :
@@ -811,14 +857,14 @@ class PetrelGrid(object):
                         #  | |
                         #  4-3
                         hexahedron = (
-                            corner_ids[i, j, k, 0],
-                            corner_ids[i + 1, j, k, 1],
-                            corner_ids[i + 1, j + 1, k, 3],
-                            corner_ids[i, j + 1, k, 2],
-                            corner_ids[i, j, k + 1, 4],
-                            corner_ids[i + 1, j, k + 1, 5],
-                            corner_ids[i + 1, j + 1, k + 1, 7],
-                            corner_ids[i, j + 1, k + 1, 6],
+                            corner_ids[ix, iy, iz, 0],
+                            corner_ids[ix + 1, iy, iz, 1],
+                            corner_ids[ix + 1, iy + 1, iz, 3],
+                            corner_ids[ix, iy + 1, iz, 2],
+                            corner_ids[ix, iy, iz + 1, 4],
+                            corner_ids[ix + 1, iy, iz + 1, 5],
+                            corner_ids[ix + 1, iy + 1, iz + 1, 7],
+                            corner_ids[ix, iy + 1, iz + 1, 6],
                         )
                         hexahedra.append(hexahedron)
         self.pvertices = vertices
@@ -844,18 +890,18 @@ class PetrelGrid(object):
                             permz.append(self.permz[i, j, k])
         return permx, permy, permz
 
-    def process_faults(self, cells):
-        print("[WARNING] PetrelGrid.process_faults() is not implemented yet.")
-        print("          This step was skipped.")
-        return self.pvertices, self.cells_faces.tolist(), self.faces_nodes.tolist() # FIXME
-        faces_nodes = self.faces_nodes
-        new_faces_nodes = faces_nodes.tolist()
-        cells_faces = self.cells_faces.tolist()
-        pvertices = self.pvertices
+    def process_faults(self, cells): # FIXME Unused parameter cells
+        print("\nIn process_faults()")
+        # Note about comments: c = cell, f = face(t), v = vertex
+        new_faces_nodes = self.faces_nodes.tolist()  # List of list, shape = (nb_f, 4), [v_ID] for each v in f
+        cells_faces = self.cells_faces.tolist() # List of list, shape = (nb_c, 6), [f_ID] for each f in c
+        pvertices = self.pvertices # 2D numpy array, shape = (nb_v, 3), [X, Y, Z] for each v
         map_edges, map_faces = {}, {}
-        for i in range(self.nx):
-            for j in range(self.ny):
-                segsY1, segsY2, segsX1, segsX2 = build_segs(i, j, self.corner_ids)
+        for ix in range(self.nx): # self.nx = nb c along X
+            for iy in range(self.ny): # self.ny = nb c along Y
+                # self.corner_ids = np.where(zpil == 9999.0, -1, corner_ids)
+                # Shape of self.corner_ids = (self.nx+1, self.ny+1, self.nz+1, 8), 8 = nb_v in c
+                segsY1, segsY2, segsX1, segsX2 = build_segs(ix, iy, self.corner_ids)
                 axes = {
                     "Y": [(segsY1, segsY2), (1, 0), (1, 2), (5, 4)],
                     "X": [(segsX1, segsX2), (0, 1), (0, 2), (3, 2)],
@@ -863,21 +909,15 @@ class PetrelGrid(object):
                 for axe in ["Y", "X"]:
                     segs1, segs2 = axes[axe][0]
                     if detect_fault(segs1, segs2, pvertices):
-                        (
+                        ( # FIXME On peut racourcir ?
                             pvertices,
                             new_faces_nodes,
                             map_edges,
                             map_faces,
                         ) = solve_fault(
-                            self,
-                            i,
-                            j,
-                            axes[axe],
-                            pvertices,
-                            cells_faces,
-                            new_faces_nodes,
-                            map_edges,
-                            map_faces,
+                            self, ix, iy, axes[axe],
+                            pvertices, cells_faces, new_faces_nodes,
+                            map_edges, map_faces,
                         )
         faces_edges, edges = update_faces_edges(new_faces_nodes)
         new_faces_nodes = update_faces_nodes(
@@ -892,39 +932,3 @@ class PetrelGrid(object):
             cells_faces, new_faces_nodes, map_duplicate_faces
         )
         return pvertices, cells_faces, new_faces_nodes
-
-
-# def _import_eclipse_grid(filename):
-#     grdecl, kwargs = read_file_argument(filename)
-#     name = os.path.basename(grdecl.split(".")[0])
-#     grid = PetrelGrid.build_from_files(grdecl, **kwargs)
-#     hexa, vertices, cell_faces, face_nodes = grid.process()
-#     # permx, permy, permz = pgrid.get_perm()
-#     utils.to_vtu(MT.HexMesh.make(vertices, hexa), name)
-#     mesh = RM.RawMesh(vertices=vertices, face_nodes=face_nodes, cell_faces=cell_faces)
-#     tetmesh, original_cell = mesh.as_tets()
-#     utils.to_vtu(
-#         tetmesh,
-#         "cells_as_tets_{0}".format(name),
-#         celldata={"original_cell": original_cell,},
-#     )
-#     vertices, cell_faces, face_nodes = grid.process_faults(hexa)
-#     mesh = RM.RawMesh(vertices=vertices, face_nodes=face_nodes, cell_faces=cell_faces)
-#     hexahedron_centers = np.array([np.mean(vertices[cell], axis=0) for cell in hexa])
-#     quadrangle_centers = np.array(
-#         [np.mean(vertices[face], axis=0) for face in face_nodes]
-#     )
-#     raw_mesh, original_cell = mesh.as_hybrid_mesh(
-#         cell_centers=hexahedron_centers, face_centers=quadrangle_centers,
-#     )
-#     utils.to_vtu(
-#         raw_mesh,
-#         "splitted_grid_edges_{0}".format(name),
-#         celldata={"original_cell": original_cell},
-#     )
-
-
-# if __name__ == "__main__":
-#     # mesh = import_eclipse_grid(sys.argv[1])
-#     d = "/home/jpvergnes/Travail/projets/CHARMS/petrel/maillage_CPG_albien_mofac/"
-#     mesh = import_eclipse_grid("{0}MOFAC_albien_eclips.GRDECL".format(d))
