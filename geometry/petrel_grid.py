@@ -350,8 +350,8 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
     # Step 2: triangulation of the 2D space
     mesh(nv.astype("float64"), segs_tri)
 
-    # assert False, "Fix call to PetrelMesh & CGAL before using faults"
-    
+    assert False, "Fix call to PetrelMesh & CGAL before using faults"
+
     # WIP: Replace PM.mesh(...)  by mesh(...). Needs to finish mesh
     uv, triangles, components, faces = PM.mesh(nv.astype("float64"), segs_tri) # FIXME Call to C++ PetrelMesnh & CGAL
     uv2 = np.reshape(uv[:, 0], (-1, 1)) * (
