@@ -53,8 +53,7 @@ class Connectivity:
         """
         self._faces_ids = {} # Dico : [Face : Face_UID]
         self._faces_cells = [] # List : Pair(Cell1_UID, Cell2_UID) for each Face
-        cur_cell_id = 0
-        for cell in self.cells_nodes:
+        for cur_cell_id, cell in enumerate(self.cells_nodes):
             for facet in cell.facets():
                 assert len(self._faces_ids) == len(self._faces_cells)
                 # Creates a new face from the facet (assumes the face does not exist yet)
@@ -72,7 +71,6 @@ class Connectivity:
                     self._faces_cells[original_face_id][1] = cur_cell_id # Updates the ID of the 2nd cell of the face
                     assert self._faces_cells[original_face_id][0] != self._faces_cells[original_face_id][1]
                 assert len(self._faces_ids) == len(self._faces_cells)
-            cur_cell_id += 1
         # Checks redundant face_id values
         assert len(self._faces_ids) == len({f_id: f for (f, f_id) in self._faces_ids.items()})
         # List of faces, ordered by increasing face_id
@@ -118,12 +116,10 @@ class HybridMesh:
     def cells_nodes_as_COC(self):
         # Step 1: Compute cells "pointers" (offset of the 1st cell vertex)
         pointers = np.zeros(self.connectivity.nb_cells, dtype=np.int64)
-        cell_idx = 0
         counter_vertices = 0
-        for cell in self.connectivity.cells_nodes:
+        for cell_idx, cell in enumerate(self.connectivity.cells_nodes):
             counter_vertices += cell.nb_vertices
             pointers[cell_idx] = counter_vertices
-            cell_idx += 1
         #Step 2: Write cells vertices indices
         nodes = np.zeros(counter_vertices, dtype=np.int64)
         assert self.connectivity.nb_cells == pointers.size
@@ -136,8 +132,6 @@ class HybridMesh:
 
     def cells_vtk_ids(self):
         vtk_ids = np.zeros(self.connectivity.nb_cells, dtype=np.int64)
-        cell_idx = 0
-        for cell in self.connectivity.cells_nodes:
+        for cell_idx, cell in enumerate(self.connectivity.cells_nodes):
             vtk_ids[cell_idx] = cell.VTK_ELEMENT_ID
-            cell_idx += 1
         return vtk_ids
