@@ -348,12 +348,9 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
     nv = np.vstack([nv1, nv2]) # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
 
     # Step 2: triangulation of the 2D space
-    mesh(nv.astype("float64"), segs_tri)
+    uv, triangles, components, faces = mesh(nv.astype("float64"), segs_tri)
 
-    assert False, "Fix call to PetrelMesh & CGAL before using faults"
-
-    # WIP: Replace PM.mesh(...)  by mesh(...). Needs to finish mesh
-    uv, triangles, components, faces = PM.mesh(nv.astype("float64"), segs_tri) # FIXME Call to C++ PetrelMesnh & CGAL
+    # Does some stuff I never dived in
     uv2 = np.reshape(uv[:, 0], (-1, 1)) * (
         Ofront + np.tensordot(uv[:, 1], ufront, axes=0)
     )
@@ -891,7 +888,6 @@ class PetrelGrid(object):
         return permx, permy, permz
 
     def process_faults(self, cells): # FIXME Unused parameter cells
-        print("\nIn process_faults()")
         # Note about comments: c = cell, f = face(t), v = vertex
         new_faces_nodes = self.faces_nodes.tolist()  # List of list, shape = (nb_f, 4), [v_ID] for each v in f
         cells_faces = self.cells_faces.tolist() # List of list, shape = (nb_c, 6), [f_ID] for each f in c
