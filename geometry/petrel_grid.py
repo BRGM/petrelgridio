@@ -406,9 +406,8 @@ def get_cells(uv, triangles, components, segs_glo, pvertices, numcells):
                     cells_num.append(numcells[fi - 1])
                     cells_comp.append(component_id)
                 break
-    for i in np.array(cells_num), np.array(cells_comp):
-        print(i)
-        # FIXME Always empty. Problem?
+    # for i in np.array(cells_num), np.array(cells_comp): # FIXME
+    #     print(i)
     return np.array(cells_num), np.array(cells_comp)
 
 
