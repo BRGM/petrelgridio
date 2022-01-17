@@ -66,9 +66,16 @@ def run_basic_test(test):
     # Split at faults
     # Creates and exports HybridMesh
     vertices, cells_faces, faces_nodes = grid.process_faults(hexa)
+    # print("vertices")
+    # print(vertices)
+    # print("face_nodes")
+    # print(faces_nodes)
+    # print("cells_faces")
+    # print(cells_faces)
     mesh = RawMesh(vertices=vertices, face_nodes=faces_nodes, cell_faces=cells_faces)
     mesh, original_cell = mesh.as_hybrid_mesh()
     print(
         f"Splitted {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell}) # FIXME celldata ?
+    # to_vtu(mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell}) # FIXME celldata ?
+    to_vtu(mesh, test.file_name + "_hybridmesh")

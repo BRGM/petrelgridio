@@ -90,21 +90,21 @@ def map_pillar_edges(edges, nodes):
         noeuds, noeuds_new = [], []
         for node in nodes:
             if noeuds and len(noeuds) < 2:
-                noeuds_new.append(node) # Executed only ONCE
+                noeuds_new.append(node)
             if node in edge:
                 if not noeuds:
-                    noeuds_new.append(node) # Executed only ONCE
+                    noeuds_new.append(node)
                 noeuds.append(node)
         assert len(noeuds) == 2
         assert Edge(noeuds[0], noeuds[1]) == edge
         assert Edge(noeuds_new[0], noeuds_new[-1]) == edge
         assert edge not in new_edges
-        if len(noeuds_new) > 2: # FIXME Condition impossible to meet?
+        if len(noeuds_new) > 2:
             new_edges[edge] = [
                 Edge(noeuds_new[u], noeuds_new[u + 1])
                 for u in range(len(noeuds_new) - 1)
             ]
-    return new_edges # FIXME If so, new_edges always empty...
+    return new_edges
 
 
 def update_faces_nodes(faces_nodes_list, faces_edges, edges, map_edges):
@@ -263,7 +263,7 @@ def pillar_referential_tri(pts):
 def new_coord_tri(pillarpts, O, e):
     """
     Used to compute the projection of pillar points onto a 2D space.
-    Note: here, we only compute the 2nd coordinate (the first one is either 0 o 1,
+    Note: here, we only compute the 2nd coordinate (the first one is either 0 or 1,
     see triangulate()) 
     """
     res = np.sum((pillarpts - O) * e, axis=1) # Projection onto a 2D space
@@ -274,13 +274,13 @@ def new_coord_tri(pillarpts, O, e):
 
 
 def map_edges_tri(segs_glo, nodes1, nodes2, pvertices):
-    asort1 = np.argsort(pvertices[segs_glo[:, 0]][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
-    asort2 = np.argsort(pvertices[segs_glo[:, 1]][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
-    no = segs_glo[:, 0][asort1]
+    asort1 = np.argsort(pvertices[ segs_glo[:, 0] ][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
+    asort2 = np.argsort(pvertices[ segs_glo[:, 1] ][:, 2]) # "Sorted" Z of all 2nd edge vertex in segs_glo
+    no = segs_glo[:, 0][asort1] # 1st edges vertices sorted by depth
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
     # edges = list of vertical edges, sorted according to Z
     map_edges = map_pillar_edges(edges, nodes1)
-    no = segs_glo[:, 1][asort2]
+    no = segs_glo[:, 1][asort2] # 2nd edges vertices sorted by depth
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
     map_edges.update(map_pillar_edges(edges, nodes2))
     return map_edges
@@ -301,19 +301,31 @@ def build_segs_tri(segs_glo, pvertices):
 
 
 def map_faces_tri(faces, nmap, pvertices, uv2):
+    """Update the indexation of vertices and faces after triangulation.
+    In particular:
+     * for vertices that already exist in the hexahedric mesh: converts their local
+       2D index back to their global 3D index
+     * for vertices that were created by the triangulation: creates a new index in
+       the 3D global indexation and associates it to the vertex
+     * for each face: the face initially stores local 2D indices. These indices are
+       converted back to refer to their associated 3D global indices
+     * the array of vertices `pvertices` is updated by appending all the vertices
+       created by the triangulation to it
+    """
     list_vert = pvertices.tolist()
-    faces2 = []
+    updated_faces = []
     for face in faces:
-        temp = []
+        updated_face = []
         for node in face:
-            if node in nmap.keys():
-                temp.append(nmap[node])
-            else:
+            if node in nmap.keys(): # Si node existe dans le modèle hexa (ou a déjà été ajouté)
+                updated_face.append(nmap[node])
+            else: # Si node a été créé durant la triangulation et n'a pas encore été ajouté
+                new_index = len(list_vert)
                 list_vert.append(uv2[node])
-                temp.append(len(list_vert) - 1)
-                nmap[node] = temp[-1]
-        faces2.append(temp)
-    return faces2, np.array(list_vert)
+                updated_face.append(new_index)
+                nmap[node] = new_index
+        updated_faces.append(updated_face)
+    return updated_faces, np.array(list_vert)
 
 
 def update_faces_tri(faces, map_edges):
@@ -346,17 +358,17 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
     nv1[:, 1] = new_coord_tri(vertices1, Oback, uback)
     nv2[:, 1] = new_coord_tri(vertices2, Ofront, ufront)
     nv = np.vstack([nv1, nv2]) # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
-
     # Step 2: triangulation of the 2D space
     uv, triangles, components, faces = mesh(nv.astype("float64"), segs_tri)
-
-    # Does some stuff I never dived in
+    # Project points back to 3D
     uv2 = np.reshape(uv[:, 0], (-1, 1)) * (
         Ofront + np.tensordot(uv[:, 1], ufront, axes=0)
     )
     uv2 += np.reshape(1 - uv[:, 0], (-1, 1)) * (
         Oback + np.tensordot(uv[:, 1], uback, axes=0)
     )
+    # NOTE: faces = list of vertices defining the border of each individual
+    #               component after triangulation
     faces, pvertices = map_faces_tri(faces, nmap, pvertices, uv2)
     faces = update_faces_tri(faces, map_edges)
     # Test si on retombe bien sur les précédents points
@@ -370,21 +382,33 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
 
 
 def get_cells(uv, triangles, components, segs_glo, pvertices, numcells):
+    # centres = For each triangle, it 2D barycenter (in the uv coordinate system)
     centres = np.vstack([uv[triangle].mean(axis=0) for triangle in triangles])
     cells_num, cells_comp = [], []
-    segs_glo = segs_glo[segs_glo != -1].reshape(-1, 2)
-    p1 = pvertices[segs_glo][:, 0]
-    p2 = pvertices[segs_glo][:, 1]
-    a = (p2[:, 1] - p1[:, 1]) / (p2[:, 0] - p1[:, 0])
-    b = p2[:, 1] - a * p2[:, 0]
-    for component, center in zip(components, centres):
+    # print("In get_cells: segs_glo = ") # FIXME
+    # print(segs_glo)
+    segs_glo = segs_glo[segs_glo != -1].reshape(-1, 2) # Does not necessarily change anything...
+    # print("In get_cells: segs_glo = ") # FIXME
+    # print(segs_glo)
+    v_sources = pvertices[segs_glo][:, 0] # 1st vertex of each edge in segs_glo
+    v_targets = pvertices[segs_glo][:, 1] # 2nd vertex of each edge in segs_glo
+    # Computes (a, b) such that: y = ax + b for each edge
+    # (note: y = Z axis, x = either X or Y axis, depending on the fault orientations)
+    # a = [(t[1] - s[1]) / (t[0] - s[0]) for s, t in zip(v_sources, v_targets)]
+    a = (v_targets[:, 1] - v_sources[:, 1]) / (v_targets[:, 0] - v_sources[:, 0])
+    # b = [t[1] - a * t[0] for s, t, a in zip(v_targets, a)]
+    b = v_targets[:, 1] - a * v_targets[:, 0]
+    for component_id, center in zip(components, centres):
         points = a * center[0] + b - center[1]
         for fi, point in enumerate(points):
             if point > 0:
                 if fi != 0:
                     cells_num.append(numcells[fi - 1])
-                    cells_comp.append(component)
+                    cells_comp.append(component_id)
                 break
+    for i in np.array(cells_num), np.array(cells_comp):
+        print(i)
+        # FIXME Always empty. Problem?
     return np.array(cells_num), np.array(cells_comp)
 
 
@@ -496,7 +520,7 @@ def map_old_new_faces_and_edges(
     map_faces,
     map_edges,
 ):
-    for icell, num_cell in enumerate(np.unique(cells_num)):
+    for icell, num_cell in enumerate(np.unique(cells_num)): # FIXME
         cell_face = cells_faces[num_cell]  # Numéro de face
         num_old_face = cell_face[num_face]
         cell_comp = np.unique(cells_comp[cells_num == num_cell])
@@ -531,13 +555,24 @@ def solve_fault(
     segs_glo, nodes1, nodes2 = build_segs_pils(
         grid, segs1, segs2, i, j, ipil, jpil, pvertices
     )
-    nv, uv2, pvertices, components, triangles, faces_tri = triangulate(
+    # _ = nv = points after projection in 2D
+    # uv2 = 3D points (2D points after triangulation that were projected back to 3D)
+    # pvertices = all 3D points (updated with vertices that were created by the triangulation)
+    # components = for each triangle (after triangulation), the id of the component it belongs to
+    # triangles = for each triangle (after triangulation), its 3 vertices
+    # faces_tri = for each individual component (after triangulation), the ordered list
+    #             of vertices defining its border
+    _, uv2, pvertices, components, triangles, faces_tri = triangulate(
         segs_glo, nodes1, nodes2, pvertices
     )
     sides = {1: [i, j, iface1, segs1], 2: [i + ipil, j + jpil, iface2, segs2]}
+    # For each side of the fault (the face of pillar1 and the face of pillar2 in contact with the fault)
+    # print("In solve_faults: segs_glo = ") # FIXME
+    # print(segs_glo)
     for key in sides.keys():
         w = sides[key]
         numcells = grid.numcells[w[0], w[1]]
+        # uv2[:, iverts] = 2D version of uv2, with the "uninteresting" dimension removed (X or Y)
         cells_num, cells_comp = get_cells(
             uv2[:, iverts], triangles, components, w[3], pvertices[:, iverts], numcells
         )
@@ -905,16 +940,23 @@ class PetrelGrid(object):
                 for axe in ["Y", "X"]:
                     segs1, segs2 = axes[axe][0]
                     if detect_fault(segs1, segs2, pvertices):
-                        ( # FIXME On peut racourcir ?
+                        (
                             pvertices,
                             new_faces_nodes,
                             map_edges,
                             map_faces,
                         ) = solve_fault(
-                            self, ix, iy, axes[axe],
-                            pvertices, cells_faces, new_faces_nodes,
-                            map_edges, map_faces,
+                            self,
+                            ix,
+                            iy,
+                            axes[axe],
+                            pvertices,
+                            cells_faces,
+                            new_faces_nodes,
+                            map_edges,
+                            map_faces,
                         )
+
         faces_edges, edges = update_faces_edges(new_faces_nodes)
         new_faces_nodes = update_faces_nodes(
             new_faces_nodes, faces_edges, edges, map_edges
