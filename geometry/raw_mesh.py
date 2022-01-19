@@ -327,6 +327,7 @@ class RawMesh:
             dtype=np.int64, # FIXME Ok ?
         )
         new_cells = list(chain.from_iterable(new_cells))
+        new_cells = [np.array(c, dtype=np.int64) for c in new_cells] # FIXME Not optimal...
         return new_vertices, new_cells, original_cell
 
     def as_tets(self, cell_centers=None):
@@ -347,5 +348,4 @@ class RawMesh:
             cell_centers=cell_centers,
             face_centers=face_centers,
         )
-        
         return HybridMesh(vertices, cells), original
