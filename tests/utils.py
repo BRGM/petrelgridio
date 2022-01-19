@@ -1,11 +1,11 @@
 from enum import Enum, unique
 
-from geometry.petrel_grid import PetrelGrid
-from geometry.uniform_mesh import HexMesh
-from geometry.raw_mesh import RawMesh
-from ios.vtu import to_vtu
+from petrelgridio.petrel_grid import PetrelGrid
+from petrelgridio.uniform_mesh import HexMesh
+from petrelgridio.raw_mesh import RawMesh
+from petrelgridio.vtu import to_vtu
 
-import geometry.dummy_petrel_grids as dg
+import petrelgridio.dummy_petrel_grids as dg
 
 
 data_folder = "tests/data/"

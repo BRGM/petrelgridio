@@ -1,7 +1,7 @@
 import numpy as np
 
-from geometry.edge_utils import *
-from geometry.petrel_mesh import mesh
+from .edge_utils import *
+from .petrel_mesh import mesh
 
 # 2--3
 # |  |

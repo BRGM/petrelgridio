@@ -1,8 +1,8 @@
 from itertools import chain
 import numpy as np
 
-from geometry.hybrid_mesh import HybridMesh
-from geometry.uniform_mesh import TetMesh
+from .hybrid_mesh import HybridMesh
+from .uniform_mesh import TetMesh
 
 
 def _align_face_and_edge(F, e):
