@@ -5,8 +5,8 @@ from tests.data.fault_pillars import get_fault_pillars_data
 from geometry.petrel_mesh import mesh
 
 if __name__ == "__main__":
-    # print("Running test_export_to_vtu()")
-    # test_export_to_vtu()
+    print("Running test_export_to_vtu()")
+    test_export_to_vtu()
 
     # print("\nRunning test_dummy_grid()")
     # test_dummy_grid()
@@ -14,5 +14,5 @@ if __name__ == "__main__":
     # print("\nRunning test_dummy_grid_fault_ramp()")
     # test_dummy_grid_fault_ramp()
 
-    print("\nRunning test_fault_pillars()")
-    test_fault_pillars()
+    # print("\nRunning test_fault_pillars()")
+    # test_fault_pillars()

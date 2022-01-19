@@ -107,33 +107,63 @@ def map_pillar_edges(edges, nodes):
     return new_edges
 
 
-def update_faces_nodes(faces_nodes_list, faces_edges, edges, map_edges):
-    new_faces_nodes = faces_nodes_list
-    for iface, id_edges in enumerate(faces_edges):
-        face_edge = [edges[id_edge] for id_edge in id_edges]
-        face_node = faces_nodes_list[iface]
-        for edge in face_edge:
-            if edge in map_edges:
-                new_edges = map_edges[edge]
-                face_node = replace_edge(face_node, edge, new_edges)
-        new_faces_nodes[iface] = face_node
-    return new_faces_nodes
+def update_faces_nodes(faces_nodes, faces_edges, all_edges, map_edges):
+    """
+    For each face, computes its updated contour (ordered list of vertices) by
+    taking into account edges that need to be splitted.
+
+    Inputs:
+        * faces_nodes: list: for each face, its (ordered) list of nodes
+        * faces_edges: list: for each face: its (ordered) list of edges (does NOT
+                       directly stores edges, but their indices in all_edges)
+        * all_edges:   unordered list: of all the edges (2-tuple of nodes)
+                       existing in the faces
+        * map_edges:   dictionary containing all (keys =) edges that must be splitted
+                       into a (values =) sequence of other existing edges
+    Output:
+        * faces_nodes: list: for each face, its (ordered) list of nodes,
+                       updated (as compared to faces_nodes) by inserting the
+                       nodes introduced when splitting edges 
+    """
+    assert len(faces_nodes) == len(faces_edges), "Inconsistent number of faces"
+    for f_id, f_edges_ids in enumerate(faces_edges):
+        f_edges = [all_edges[e_id] for e_id in f_edges_ids]
+        f_nodes = faces_nodes[f_id]
+        for e in f_edges:
+            new_edges = map_edges.get(e)
+            if new_edges is not None:
+                f_nodes = replace_edge(f_nodes, e, new_edges)
+        faces_nodes[f_id] = f_nodes
+    return faces_nodes
 
 
 def update_faces_edges(faces_nodes):
-    faces_edges, edges = [], []
-    for fi, nodes in enumerate(faces_nodes):
-        face = []
-        for i in range(len(nodes)):
-            edge = Edge(nodes[i - 1], nodes[i])
-            if edge not in edges:
-                edges.append(edge)
-                id_edge = len(edges) - 1
+    """
+    For each face, computes its list of edges from its list of nodes.
+
+    Input:
+        * faces_nodes: list: for each face, its (ordered) list of nodes
+
+    Outputs:
+        * all_edges:   unordered list: of all the edges (2-tuple of nodes)
+                       existing in the faces
+        * faces_edges: list: for each face: its (ordered) list of edges (does NOT
+                       directly stores edges, but their indices in all_edges)
+                       
+    """
+    faces_edges, all_edges = [], []
+    for f_nodes in faces_nodes:
+        f_edges = []
+        for i in range(len(f_nodes)):
+            e = Edge(f_nodes[i - 1], f_nodes[i])
+            if e not in all_edges:
+                e_id = len(all_edges)
+                all_edges.append(e)
             else:
-                id_edge = edges.index(edge)
-            face.append(id_edge)
-        faces_edges.append(face)
-    return faces_edges, edges
+                e_id = all_edges.index(e)
+            f_edges.append(e_id)
+        faces_edges.append(f_edges)
+    return faces_edges, all_edges
 
 
 def set_faces_nodes(cells):
@@ -360,7 +390,7 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
     nv = np.vstack([nv1, nv2]) # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
     # Step 2: triangulation of the 2D space
     uv, triangles, components, faces = mesh(nv.astype("float64"), segs_tri)
-    # Project points back to 3D
+    # Step 3: Project points back to 3D
     uv2 = np.reshape(uv[:, 0], (-1, 1)) * (
         Ofront + np.tensordot(uv[:, 1], ufront, axes=0)
     )
@@ -385,11 +415,7 @@ def get_cells(uv, triangles, components, segs_glo, pvertices, numcells):
     # centres = For each triangle, it 2D barycenter (in the uv coordinate system)
     centres = np.vstack([uv[triangle].mean(axis=0) for triangle in triangles])
     cells_num, cells_comp = [], []
-    # print("In get_cells: segs_glo = ") # FIXME
-    # print(segs_glo)
-    segs_glo = segs_glo[segs_glo != -1].reshape(-1, 2) # Does not necessarily change anything...
-    # print("In get_cells: segs_glo = ") # FIXME
-    # print(segs_glo)
+    segs_glo = segs_glo[segs_glo != -1].reshape(-1, 2) # FIXME Does not necessarily change anything...
     v_sources = pvertices[segs_glo][:, 0] # 1st vertex of each edge in segs_glo
     v_targets = pvertices[segs_glo][:, 1] # 2nd vertex of each edge in segs_glo
     # Computes (a, b) such that: y = ax + b for each edge
@@ -474,37 +500,35 @@ def replace_face(cell_faces, old_face, new_faces):
     return new_cell
 
 
-def get_duplicate_face_id(new_faces_nodes):
-    faces_sort = [sorted(face) for face in new_faces_nodes]
+def get_duplicate_face_id(faces_nodes):
+    """
+    # FIXME Peut probablement être mieux réécrit"""
+    faces_sorted_nodes = [set(f_nodes) for f_nodes in faces_nodes]
     faces_done, new_ids = [], []
-    for iface, face in enumerate(faces_sort):
-        if face in faces_done:
-            indice = faces_done.index(face)
-            new_ids.append(indice)
+    for f_id, f in enumerate(faces_sorted_nodes):
+        if f in faces_done:
+            id = faces_done.index(f)
+            new_ids.append(id)
         else:
-            new_ids.append(iface)
-        faces_done.append(face)
-    old_ids = np.arange(len(faces_sort))
+            new_ids.append(f_id)
+        faces_done.append(f)
+    old_ids = np.arange(len(faces_sorted_nodes))
     nmap = {
         old_id: [new_id] for old_id, new_id in zip(old_ids, new_ids) if old_id != new_id
     }
     return nmap
 
 
-def new_id(active):
-    """
-    active is a boolean array
-    returns an array a such that a[old_id]=new_id
-    """
-    active = np.asarray(active, dtype=np.bool)
-    return -1 + np.cumsum(active)
-
-
 def remove_old_faces(faces_nodes, map_faces):
+    """
+    Inputs:
+        * faces_nodes: just to get the initial number of faces
+        * map_faces: # TODO
+    """
     old_faces = list(map_faces.keys())
     mask = np.ones(len(faces_nodes), dtype=np.bool)
     mask[old_faces] = False
-    return new_id(mask)
+    return -1 + np.cumsum(mask)
 
 
 def map_old_new_faces_and_edges(
@@ -519,29 +543,45 @@ def map_old_new_faces_and_edges(
     map_faces,
     map_edges,
 ):
-    for icell, num_cell in enumerate(np.unique(cells_num)): # FIXME
-        cell_face = cells_faces[num_cell]  # Numéro de face
-        num_old_face = cell_face[num_face]
-        cell_comp = np.unique(cells_comp[cells_num == num_cell])
-        faces = [faces_tri[i] for i in cell_comp]
+    for c_num in np.unique(cells_num):
+        c_faces = cells_faces[c_num]  # Numéro de face
+        num_old_face = c_faces[num_face]
+        c_comp = np.unique(cells_comp[cells_num == c_num])
+        faces = [faces_tri[i] for i in c_comp]
         maxnode = len(new_faces_nodes)
         map_faces[num_old_face] = [i for i in range(maxnode, maxnode + len(faces))]
         new_faces_nodes.extend(faces)
         map_edges = do_map_edges(
-            self, faces, num_cell, segs_glo, num_old_face, map_edges
+            self, faces, c_num, segs_glo, num_old_face, map_edges
         )
     return new_faces_nodes, map_faces, map_edges
 
 
 def replace_old_new_faces(cells_faces, map_faces):
-    new_cells_faces = cells_faces
-    for icell, cell_faces in enumerate(cells_faces):
-        new_cell = cell_faces
-        for old_face in cell_faces:
-            if old_face in map_faces:
-                new_cell = replace_face(new_cell, old_face, map_faces[old_face])
-        new_cells_faces[icell] = new_cell
-    return new_cells_faces
+    """
+    For each cell, computes its updated list of face ids by taking into account
+    the mess done in solve_faults() about { duplicated / splitted / ? } faces.
+    Probably (though unchecked): replaces one Quad face by 2 Triangle faces.
+
+    WARNING: does not "create" new cells yet: it just replaces the existing ones.
+    So you end up with cells that can have 7 or 8 faces instead of hexahedra, but
+    no tetrahedra, pyramids and wedges...
+
+    Inputs:
+        * cells_faces: list: for each cell (hexahedron), its list of 6 faces
+        * map_faces:   dictionary contaning all (key = ) faces (ids) that must be
+                       replace by a (value =) list of other existing faces (ids)
+    Output:
+        *
+    """
+    for c_id, c_faces in enumerate(cells_faces):
+        new_cell = c_faces
+        for f in c_faces:
+            new_faces = map_faces.get(f)
+            if new_faces is not None:
+                new_cell = replace_face(new_cell, f, new_faces)
+        cells_faces[c_id] = new_cell
+    return cells_faces
 
 
 def solve_fault(
@@ -591,11 +631,8 @@ def solve_fault(
 
 
 def new_cell_faces(cells_faces, new_ids):
-    new_cells = []
-    for cell_face in cells_faces:
-        cell_face = new_ids[cell_face].tolist()
-        new_cells.append(cell_face)
-    return new_cells
+    """For each cell, updates its list of faces using the new faces indexing"""
+    return [new_ids[c_faces] for c_faces in cells_faces]
 
 
 def passe_finale(cells_faces, faces_nodes, map_faces):
@@ -955,12 +992,12 @@ class PetrelGrid(object):
                             map_edges,
                             map_faces,
                         )
-
+        # "Mise à jour" du modèle après calcul des nouveaux points, arêtes et faces
+        # FIXME Most computation time occurs between this point and the return statement
         faces_edges, edges = update_faces_edges(new_faces_nodes)
         new_faces_nodes = update_faces_nodes(
             new_faces_nodes, faces_edges, edges, map_edges
         )
-
         cells_faces, new_faces_nodes = passe_finale(
             cells_faces, new_faces_nodes, map_faces
         )
