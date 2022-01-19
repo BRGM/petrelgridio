@@ -10,7 +10,8 @@ def test_fault_pillars():
     nb_vertices = vertices.shape[0]
     assert nb_vertices == 1 + np.max(faces)
     assert all(nb_vertices >= 1 + np.max(c) for c in comp_contours)
-    assert len(comp_contours) == 1 +np.max(faces_comp_ids)
+    assert len(comp_contours) == 1 + np.max(faces_comp_ids)
+    assert np.array_equal(v, vertices[:v.shape[0],])
     print("Vertices:")
     for i, v in enumerate(vertices):
         print(f"{i} : {v}")
