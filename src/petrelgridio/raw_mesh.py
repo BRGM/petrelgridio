@@ -246,7 +246,7 @@ class RawMesh:
 
     def cell_centers(self, cell_nodes=None):
         if cell_nodes is None:
-            cell_nodes = self.cell_nodes #FIXME It's not self._cell_nodes?
+            cell_nodes = self.cell_nodes
         return self._centers(cell_nodes)
 
     def face_centers(self, face_nodes=None):

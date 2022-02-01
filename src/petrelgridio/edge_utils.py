@@ -1,7 +1,6 @@
 from collections import defaultdict
-import copy
 
-# to be used as unique ids edge vertices are sorted
+# Used as unique edge ids (edge vertices are sorted)
 Edge = lambda i, j: (j, i) if i > j else (i, j)
 
 
@@ -16,7 +15,6 @@ class Edge_faces:
         for fi, nodes in enumerate(faces):
             for i in range(len(nodes)):
                 edge_faces[Edge(nodes[i - 1], nodes[i])].append(fi)
-        # edge_faces.default_factory = None # reset dict behavior (will raise KeyError) - does not work ?
 
     def seems_consistent(self):
         return all([len(faces) for faces in self.edge_faces.values()])

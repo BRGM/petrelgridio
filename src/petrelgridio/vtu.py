@@ -1,5 +1,3 @@
-import numpy as np
-
 import vtkwriters as vtkw
 
 from .raw_mesh import RawMesh
