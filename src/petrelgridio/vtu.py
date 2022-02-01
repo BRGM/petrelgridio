@@ -2,7 +2,7 @@ import numpy as np
 
 import vtkwriters as vtkw
 
-from geometry.raw_mesh import RawMesh
+from .raw_mesh import RawMesh
 
 
 def to_vtu(mesh, filename, **kwargs):

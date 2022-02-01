@@ -1,8 +1,8 @@
-from geometry.petrel_grid import PetrelGrid
-from geometry.uniform_mesh import HexMesh
-from geometry.raw_mesh import RawMesh
-from ios.vtu import to_vtu
-from tests.utils import *
+from petrelgridio.petrel_grid import PetrelGrid
+from petrelgridio.uniform_mesh import HexMesh
+from petrelgridio.raw_mesh import RawMesh
+from petrelgridio.vtu import to_vtu
+from utils import *
 
 
 def test_export_to_vtu():
@@ -37,7 +37,11 @@ def test_export_to_vtu():
     print(
         f"Splitted {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, output_folder + name + "_hybridmesh", celldata={"original_cell": original_cell}) # FIXME celldata ?
+    to_vtu(
+        mesh,
+        output_folder + name + "_hybridmesh",
+        celldata={"original_cell": original_cell},
+    )  # FIXME celldata ?
 
 
 def test_dummy_grid():

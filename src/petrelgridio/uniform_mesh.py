@@ -1,6 +1,6 @@
 import numpy as np
 
-from geometry.primitives import Hexahedron, Tetrahedron
+from .primitives import Hexahedron, Tetrahedron
 
 class UniformMesh:
     BASE_ELEMENT = None # Hexahedron or Tetrahedron

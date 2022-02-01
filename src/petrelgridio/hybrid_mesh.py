@@ -1,6 +1,6 @@
 import numpy as np
 
-from geometry.primitives import * 
+from .primitives import * 
 
 
 class Connectivity:

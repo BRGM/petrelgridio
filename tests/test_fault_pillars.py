@@ -1,7 +1,7 @@
 import numpy as np
 
-from tests.data.fault_pillars import get_fault_pillars_data
-from geometry.petrel_mesh import mesh
+from data.fault_pillars import get_fault_pillars_data
+from petrelgridio.petrel_mesh import mesh
 
 
 def test_fault_pillars():
