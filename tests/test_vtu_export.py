@@ -1,6 +1,9 @@
 import numpy as np
+
 from petrelgridio.vtu import to_vtu
 from petrelgridio.raw_mesh import RawMesh
+
+from utils import OUTPUT_FOLDER
 
 
 def test_export_vtu():
@@ -27,4 +30,4 @@ def test_export_vtu():
         cell_faces=[(0, 1, 2, 3)],
     )
 
-    to_vtu(mesh, "foo.vtu")
+    to_vtu(mesh, OUTPUT_FOLDER + "foo.vtu")
