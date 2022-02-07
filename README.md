@@ -23,6 +23,11 @@ cd petrelgridio
 python -m pip install .
 ```
 
+Run the tests:
+```bash
+python -m pytest # From the project root
+```
+
 ## Authors
 * Nicolas Clausolles (DNG/TIA)
 * Simon Lopez (DGR/CIM)
