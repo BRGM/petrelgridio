@@ -526,7 +526,7 @@ def remove_old_faces(faces_nodes, map_faces):
         * map_faces: # TODO
     """
     old_faces = list(map_faces.keys())
-    mask = np.ones(len(faces_nodes), dtype=np.bool)
+    mask = np.ones(len(faces_nodes), dtype=bool)
     mask[old_faces] = False
     return -1 + np.cumsum(mask)
 
@@ -861,7 +861,7 @@ class PetrelGrid(object):
          * face_nodes: np.array((NbFaces, 4)): for each (unique) face: the 4 UIds of its vertices
         """
         vertices, ids = [], []
-        new_ids = np.zeros(8, dtype=np.long)
+        new_ids = np.zeros(8, dtype=np.int64)
         # Coordonnées X, Y et Z de chaque pilier. Shape (NX+1,NY+1,NZ+1,8)
         # Va contenir pour chaque noeud de chaque pilier les coordonnées
         # des noeuds de chaque cellule

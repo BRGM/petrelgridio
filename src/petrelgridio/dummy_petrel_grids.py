@@ -31,7 +31,7 @@ def add_buffer(hexaedra):
 
 def add_mask_buffer(hexaedra):
     buffered = np.ma.array(add_buffer(hexaedra))
-    mask = np.zeros(buffered.shape, dtype=np.bool)
+    mask = np.zeros(buffered.shape, dtype=bool)
     mask[0, :, :, (0, 2, 4, 6), :] = True
     mask[-1, :, :, (1, 3, 5, 7), :] = True
     mask[:, 0, :, (0, 1, 4, 5), :] = True
