@@ -1,0 +1,8 @@
+# Note: this folder must exist for tests to pass (otherwise they cannot create
+# output .vut files in it). So we add this directory to GitLab, while ensuring
+# it remains empty (apart from this .gitignore file)
+
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
