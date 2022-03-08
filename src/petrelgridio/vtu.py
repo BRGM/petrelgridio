@@ -15,10 +15,10 @@ def to_vtu(mesh, filename, **kwargs):
     else:
         offsets, cellsnodes = mesh.cells_nodes_as_COC()
         vtu = vtkw.vtu_doc_from_COC(
-            mesh.vertices, # Shape = (NbVertices * 3)
-            offsets, # Size = NbCells
-            cellsnodes, # Shape = (NbCells, 8), Values = vertices ids
-            mesh.cells_vtk_ids(), # Size = NbCells, Values = 12 (VTK id for hexahedron)
+            mesh.vertices,  # Shape = (NbVertices * 3)
+            offsets,  # Size = NbCells
+            cellsnodes,  # Shape = (NbCells, 8), Values = vertices ids
+            mesh.cells_vtk_ids(),  # Size = NbCells, Values = 12 (VTK id for hexahedron)
             **kwargs
         )
     vtkw.write_vtu(vtu, filename)

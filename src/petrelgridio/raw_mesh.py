@@ -13,7 +13,9 @@ def _align_face_and_edge(F, e):
     #    print('@', newF, '@', end=' ')
     if newF[1] != e[1]:
         assert newF[-1] == e[1]
-        newF = [e[0],] + newF[:0:-1]
+        newF = [
+            e[0],
+        ] + newF[:0:-1]
     assert newF[1] == e[1]
     return newF
 
@@ -100,8 +102,12 @@ class RawMesh:
         assert "vertices" in kwargs
         assert "cell_faces" in kwargs
         assert "face_nodes" in kwargs
-        assert all([len(faces) > 3 for faces in kwargs["cell_faces"]]), "degenerated cell"
-        assert all([len(nodes) > 2 for nodes in kwargs["face_nodes"]]), "degenerated face"
+        assert all(
+            [len(faces) > 3 for faces in kwargs["cell_faces"]]
+        ), "degenerated cell"
+        assert all(
+            [len(nodes) > 2 for nodes in kwargs["face_nodes"]]
+        ), "degenerated face"
         self._cell_nodes = None
         for name, value in kwargs.items():
             if name == "cell_nodes":
@@ -169,7 +175,9 @@ class RawMesh:
             return self._cell_nodes
         self._cell_nodes = self.collect_cell_nodes(reprocess)
         self.reprocessed_cellnodes = reprocess
-        return self._cell_nodes # FIXME Renvoyer directement l'attribut ne change rien ? (pas de copie de toute façon ?)
+        return (
+            self._cell_nodes
+        )  # FIXME Renvoyer directement l'attribut ne change rien ? (pas de copie de toute façon ?)
 
     def _specific_faces(self, nbnodes):
         face_nodes = self.face_nodes
@@ -255,7 +263,12 @@ class RawMesh:
         return self._centers(face_nodes)
 
     def _new_vertices(
-        self, cell_centers, kept_cells, face_nodes, kept_faces, face_centers=None,
+        self,
+        cell_centers,
+        kept_cells,
+        face_nodes,
+        kept_faces,
+        face_centers=None,
     ):
         splitted_cells = np.logical_not(kept_cells)
         splitted_faces = np.logical_not(kept_faces)
@@ -311,7 +324,10 @@ class RawMesh:
                 for fi in faces:
                     if kept_faces[fi]:
                         parts.append(
-                            list(face_nodes[fi]) + [cci,]
+                            list(face_nodes[fi])
+                            + [
+                                cci,
+                            ]
                         )
                     else:
                         fci = fc[fi]
@@ -322,28 +338,37 @@ class RawMesh:
         assert len(new_cells) == self.nb_cells
         original_cell = np.fromiter(
             chain.from_iterable(
-                [ci,] * len(parts) for ci, parts in enumerate(new_cells)
+                [
+                    ci,
+                ]
+                * len(parts)
+                for ci, parts in enumerate(new_cells)
             ),
-            dtype=np.int64, # FIXME Ok ?
+            dtype=np.int64,  # FIXME Ok ?
         )
         new_cells = list(chain.from_iterable(new_cells))
-        new_cells = [np.array(c, dtype=np.int64) for c in new_cells] # FIXME Not optimal...
+        new_cells = [
+            np.array(c, dtype=np.int64) for c in new_cells
+        ]  # FIXME Not optimal...
         return new_vertices, new_cells, original_cell
 
     def as_tets(self, cell_centers=None):
         vertices, cells, original = self._new_cells(
-            self.tetrahedron_cells(), self.triangle_faces(), cell_centers=cell_centers,
+            self.tetrahedron_cells(),
+            self.triangle_faces(),
+            cell_centers=cell_centers,
         )
-        cells = np.array(cells, dtype=np.int64) # FIXME Ok ?
+        cells = np.array(cells, dtype=np.int64)  # FIXME Ok ?
         assert cells.ndim == 2 and cells.shape[1] == 4
         return TetMesh(vertices, cells), original
 
     def as_hybrid_mesh(self, cell_centers=None, face_centers=None):
         """
-            Rewritten... To test! # FIXME
+        Rewritten... To test! # FIXME
         """
         vertices, cells, original = self._new_cells(
-            kept_cells=self.tetrahedron_cells() | self.hexahedron_cells(), # On ne garde que les tet & hex?
+            kept_cells=self.tetrahedron_cells()
+            | self.hexahedron_cells(),  # On ne garde que les tet & hex?
             kept_faces=self.triangle_faces() | self.quadrangle_faces(),
             cell_centers=cell_centers,
             face_centers=face_centers,

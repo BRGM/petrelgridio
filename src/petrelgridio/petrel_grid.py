@@ -123,7 +123,7 @@ def update_faces_nodes(faces_nodes, faces_edges, all_edges, map_edges):
     Output:
         * faces_nodes: list: for each face, its (ordered) list of nodes,
                        updated (as compared to faces_nodes) by inserting the
-                       nodes introduced when splitting edges 
+                       nodes introduced when splitting edges
     """
     assert len(faces_nodes) == len(faces_edges), "Inconsistent number of faces"
     for f_id, f_edges_ids in enumerate(faces_edges):
@@ -187,7 +187,7 @@ def set_faces_nodes(cells):
         faces.extend(np.array(cells)[:, indice].tolist())
     faces_sort = np.sort(faces, axis=1)
     # On élimine les doublons
-    newfaces, unique_indices, face_id = np.unique( # FIXME Unused newfaces?
+    newfaces, unique_indices, face_id = np.unique(  # FIXME Unused newfaces?
         faces_sort, axis=0, return_index=True, return_inverse=True
     )
     cells_faces = face_id.reshape((len(cells), len(indices)), order="F")
@@ -197,24 +197,26 @@ def set_faces_nodes(cells):
 
 def detect_fault(segs1, segs2, pvertices):
     mask = (segs1 != -1) & (segs2 != -1)
-    diff = pvertices[segs2][..., 2] - pvertices[segs1][..., 2] # Compare Z of 
+    diff = pvertices[segs2][..., 2] - pvertices[segs1][..., 2]  # Compare Z of
     diff = diff[mask]
-    if np.nonzero(diff)[0].shape[0] != 0: # nonzero returns a tuple with 1 elt per array dim
-        return True                       # we only need to check one dim, to check for nonzero
+    if (
+        np.nonzero(diff)[0].shape[0] != 0
+    ):  # nonzero returns a tuple with 1 elt per array dim
+        return True  # we only need to check one dim, to check for nonzero
 
 
 def build_segs(ix, iy, corner_ids):
     """
     Idea:
      * Definitions:
-       * north/south = Y axis, north direction = increasing Y values, south direction = 
+       * north/south = Y axis, north direction = increasing Y values, south direction =
                        decreasing Y values
-       * east/west = X axis, east direction = increasing X values, west direction = 
+       * east/west = X axis, east direction = increasing X values, west direction =
                        decreasing X values
        * A pillar = a vertical column of hexahedra in the model
                     pillar(ix, iy) = pillar defined by cells (ix, iy, :)
                     a pillar have 4 vertical faces: notrh, south, east and west
-     * Algorithm: 
+     * Algorithm:
        * For a given pillar(ix, iy), we compare:
          - the horizontal edges of its north face with the horizontal edges of the
            south face of the pillar(ix, iy + 1) to detect faults along Y
@@ -238,13 +240,13 @@ def build_segs(ix, iy, corner_ids):
          here (i.e., I might inverted north/south directions, but you still have the
          general idea of the algorithm !)
     """
-    segs1 = np.stack( # [Column (X+1, Y), all Z, V1], [Column (X+1, Y+1), all Z, V3]
+    segs1 = np.stack(  # [Column (X+1, Y), all Z, V1], [Column (X+1, Y+1), all Z, V3]
         [corner_ids[ix + 1, iy, :, 1], corner_ids[ix + 1, iy + 1, :, 3]], axis=-1
     )
-    segs2 = np.stack( # [Column (X+1, Y), all Z, V5], [Column (X+1, Y+1), all Z, V7]
+    segs2 = np.stack(  # [Column (X+1, Y), all Z, V5], [Column (X+1, Y+1), all Z, V7]
         [corner_ids[ix + 1, iy, :, 5], corner_ids[ix + 1, iy + 1, :, 7]], axis=-1
     )
-    segsY1 = np.where(segs1 == -1, segs2, segs1) # [segs1 or segs2 if segs1 is masked]
+    segsY1 = np.where(segs1 == -1, segs2, segs1)  # [segs1 or segs2 if segs1 is masked]
 
     segs3 = np.stack(
         [corner_ids[ix + 1, iy, :, 0], corner_ids[ix + 1, iy + 1, :, 2]], axis=-1
@@ -272,15 +274,15 @@ def build_segs(ix, iy, corner_ids):
 
 
 def build_segs_pils(grid, segs1, segs2, i, j, u, v, pvertices):
-    segs1 = segs1[segs1 != -1].reshape(-1, 2) # "segsY1"
-    segs2 = segs2[segs2 != -1].reshape(-1, 2) # "segsY2"
-    segs_glo = np.vstack([segs1, segs2]) # segs1.append_elements(segs2)
+    segs1 = segs1[segs1 != -1].reshape(-1, 2)  # "segsY1"
+    segs2 = segs2[segs2 != -1].reshape(-1, 2)  # "segsY2"
+    segs_glo = np.vstack([segs1, segs2])  # segs1.append_elements(segs2)
     nodes1 = np.unique(pillar_edges(grid.corner_ids, i + u, j + v, grid.nz))
     asort = np.argsort(pvertices[nodes1][..., 2])
-    nodes1 = nodes1[asort] # All nodes indices on "face 1" ?
+    nodes1 = nodes1[asort]  # All nodes indices on "face 1" ?
     nodes2 = np.unique(pillar_edges(grid.corner_ids, i + 1, j + 1, grid.nz))
     asort = np.argsort(pvertices[nodes2][..., 2])
-    nodes2 = nodes2[asort] # All nodes indices on "face 2" ?
+    nodes2 = nodes2[asort]  # All nodes indices on "face 2" ?
     return segs_glo, nodes1, nodes2
 
 
@@ -296,23 +298,27 @@ def new_coord_tri(pillarpts, O, e):
     """
     Used to compute the projection of pillar points onto a 2D space.
     Note: here, we only compute the 2nd coordinate (the first one is either 0 or 1,
-    see triangulate()) 
+    see triangulate())
     """
-    res = np.sum((pillarpts - O) * e, axis=1) # Projection onto a 2D space
-    e2 = np.sum(e * e) # Square norm of e
+    res = np.sum((pillarpts - O) * e, axis=1)  # Projection onto a 2D space
+    e2 = np.sum(e * e)  # Square norm of e
     assert e2 > 0
     res /= e2
     return res
 
 
 def map_edges_tri(segs_glo, nodes1, nodes2, pvertices):
-    asort1 = np.argsort(pvertices[ segs_glo[:, 0] ][:, 2]) # "Sorted" Z of all 1st edge vertex in segs_glo
-    asort2 = np.argsort(pvertices[ segs_glo[:, 1] ][:, 2]) # "Sorted" Z of all 2nd edge vertex in segs_glo
-    no = segs_glo[:, 0][asort1] # 1st edges vertices sorted by depth
+    asort1 = np.argsort(
+        pvertices[segs_glo[:, 0]][:, 2]
+    )  # "Sorted" Z of all 1st edge vertex in segs_glo
+    asort2 = np.argsort(
+        pvertices[segs_glo[:, 1]][:, 2]
+    )  # "Sorted" Z of all 2nd edge vertex in segs_glo
+    no = segs_glo[:, 0][asort1]  # 1st edges vertices sorted by depth
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
     # edges = list of vertical edges, sorted according to Z
     map_edges = map_pillar_edges(edges, nodes1)
-    no = segs_glo[:, 1][asort2] # 2nd edges vertices sorted by depth
+    no = segs_glo[:, 1][asort2]  # 2nd edges vertices sorted by depth
     edges = [Edge(no[u], no[u + 1]) for u in range(len(no) - 1) if no[u] != no[u + 1]]
     map_edges.update(map_pillar_edges(edges, nodes2))
     return map_edges
@@ -349,9 +355,11 @@ def map_faces_tri(faces, nmap, pvertices, uv2):
     for face in faces:
         updated_face = []
         for node in face:
-            if node in nmap.keys(): # Si node existe dans le modèle hexa (ou a déjà été ajouté)
+            if (
+                node in nmap.keys()
+            ):  # Si node existe dans le modèle hexa (ou a déjà été ajouté)
                 updated_face.append(nmap[node])
-            else: # Si node a été créé durant la triangulation et n'a pas encore été ajouté
+            else:  # Si node a été créé durant la triangulation et n'a pas encore été ajouté
                 new_index = len(list_vert)
                 list_vert.append(uv2[node])
                 updated_face.append(new_index)
@@ -363,7 +371,6 @@ def map_faces_tri(faces, nmap, pvertices, uv2):
 def update_faces_tri(faces, map_edges):
     faces2 = []
     for face in faces:
-        edges = []
         old_face = face
         for inode in range(len(old_face)):
             edge = Edge(old_face[inode - 1], old_face[inode])
@@ -378,18 +385,20 @@ def triangulate(segs_glo, nodes1, nodes2, pvertices):
     map_edges = map_edges_tri(segs_glo, nodes1, nodes2, pvertices)
     nmap, segs_tri, vertices_tri = build_segs_tri(segs_glo, pvertices)
     _, indices = np.unique(segs_tri[:, 0], return_index=True)
-    tri1 = segs_tri[:, 0][indices] # 1st v of each e?
+    tri1 = segs_tri[:, 0][indices]  # 1st v of each e?
     _, indices = np.unique(segs_tri[:, 1], return_index=True)
-    tri2 = segs_tri[:, 1][indices] # 2nd v of each e?
+    tri2 = segs_tri[:, 1][indices]  # 2nd v of each e?
     vertices1 = vertices_tri[tri1]
     vertices2 = vertices_tri[tri2]
     Oback, uback = pillar_referential_tri(vertices1)
     Ofront, ufront = pillar_referential_tri(vertices2)
-    nv1 = np.zeros((vertices1.shape[0], 2)) # Projected 2D points
-    nv2 = np.ones((vertices2.shape[0], 2)) # Projected 2D points
+    nv1 = np.zeros((vertices1.shape[0], 2))  # Projected 2D points
+    nv2 = np.ones((vertices2.shape[0], 2))  # Projected 2D points
     nv1[:, 1] = new_coord_tri(vertices1, Oback, uback)
     nv2[:, 1] = new_coord_tri(vertices2, Ofront, ufront)
-    nv = np.vstack([nv1, nv2]) # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
+    nv = np.vstack(
+        [nv1, nv2]
+    )  # Kind of concatenate: nv = [nv1[0], ..., nv1[m], nv2[0], ..., nv2[n]]
     # Step 2: triangulation of the 2D space
     uv, triangles, components, faces = mesh(nv.astype("float64"), segs_tri)
     # Step 3: Project points back to 3D
@@ -417,9 +426,11 @@ def get_cells(uv, triangles, components, segs_glo, pvertices, numcells):
     # centres = For each triangle, it 2D barycenter (in the uv coordinate system)
     centres = np.vstack([uv[triangle].mean(axis=0) for triangle in triangles])
     cells_num, cells_comp = [], []
-    segs_glo = segs_glo[segs_glo != -1].reshape(-1, 2) # FIXME Does not necessarily change anything...
-    v_sources = pvertices[segs_glo][:, 0] # 1st vertex of each edge in segs_glo
-    v_targets = pvertices[segs_glo][:, 1] # 2nd vertex of each edge in segs_glo
+    segs_glo = segs_glo[segs_glo != -1].reshape(
+        -1, 2
+    )  # FIXME Does not necessarily change anything...
+    v_sources = pvertices[segs_glo][:, 0]  # 1st vertex of each edge in segs_glo
+    v_targets = pvertices[segs_glo][:, 1]  # 2nd vertex of each edge in segs_glo
     # Computes (a, b) such that: y = ax + b for each edge
     # (note: y = Z axis, x = either X or Y axis, depending on the fault orientations)
     # a = [(t[1] - s[1]) / (t[0] - s[0]) for s, t in zip(v_sources, v_targets)]
@@ -442,7 +453,7 @@ def get_cells(uv, triangles, components, segs_glo, pvertices, numcells):
 # FIXME self as a random parameter name?
 # FIXME Unused parameters: num_cell, seg_glo, maxnode
 def do_map_edges(self, faces, num_cell, segs_glo, num_old_face, map_edges):
-    maxnode = len(self.pvertices)
+    len(self.pvertices)
     edges_faces = Edge_faces(faces)
     keep_edges = []
     for key, value in edges_faces.edge_faces.items():
@@ -553,9 +564,7 @@ def map_old_new_faces_and_edges(
         maxnode = len(new_faces_nodes)
         map_faces[num_old_face] = [i for i in range(maxnode, maxnode + len(faces))]
         new_faces_nodes.extend(faces)
-        map_edges = do_map_edges(
-            self, faces, c_num, segs_glo, num_old_face, map_edges
-        )
+        map_edges = do_map_edges(self, faces, c_num, segs_glo, num_old_face, map_edges)
     return new_faces_nodes, map_faces, map_edges
 
 
@@ -693,9 +702,14 @@ class PetrelGrid(object):
                 # self.mapaxes = np.asarray(next(f).strip().split(' ')[:-1],
                 # 'float')
                 if line.startswith("SPECGRID"):
-                    self.specgrid = self.nx, self.ny, self.nz = np.asarray( # FIXME C'est pas très jojo tout ça...
+                    self.specgrid = (
+                        self.nx,
+                        self.ny,
+                        self.nz,
+                    ) = np.asarray(  # FIXME C'est pas très jojo tout ça...
                         # next(f).strip().split(" ")[:-3], "int" # FIXME Dans mes exemples il n'y a que 2 valeurs à supprimer
-                        next(f).strip().split(" ")[:-2], "int"
+                        next(f).strip().split(" ")[:-2],
+                        "int",
                     )
         #  Tableau des coordonnées. Shape ((NX+1)*(NY+1), 6)
         coord = self._read_coord(coordfile)
@@ -800,7 +814,7 @@ class PetrelGrid(object):
         ncx, ncy, dim = pillar_tops.shape
         assert dim == 3
         nx, ny = ncx - 1, ncy - 1
-        self.nx = nx # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent nx, ny et nz ??? 
+        self.nx = nx  # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent nx, ny et nz ???
         self.ny = ny
         self.nz = zcorn.shape[2]
         assert nx > 0 and ny > 0
@@ -812,7 +826,7 @@ class PetrelGrid(object):
                 pillars[i, j, 3:] = pillar_bottoms[i, j, :]
         grid.zcorn = zcorn
         grid.build_grid(pillars)
-        self.permx = None # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent permx, permy et permz ??? 
+        self.permx = None  # FIXME c'est quoi ce self ?! Ce devrait être un cls ? A qui appartiennent permx, permy et permz ???
         self.permy = None
         self.permz = None
         return grid
@@ -846,11 +860,19 @@ class PetrelGrid(object):
                 if line.startswith("ZCORN"):
                     for k in range(self.nz):
                         for j in range(self.ny):
-                            self.zcorn[:, j, k, 0:2] = np.fromfile(f, sep=" ", count=2 * self.nx).reshape((self.nx, 2))
-                            self.zcorn[:, j, k, 2:4] = np.fromfile(f, sep=" ", count=2 * self.nx).reshape((self.nx, 2))
+                            self.zcorn[:, j, k, 0:2] = np.fromfile(
+                                f, sep=" ", count=2 * self.nx
+                            ).reshape((self.nx, 2))
+                            self.zcorn[:, j, k, 2:4] = np.fromfile(
+                                f, sep=" ", count=2 * self.nx
+                            ).reshape((self.nx, 2))
                         for j in range(self.ny):
-                            self.zcorn[:, j, k, 4:6] = np.fromfile(f, sep=" ", count=2 * self.nx).reshape((self.nx, 2))
-                            self.zcorn[:, j, k, 6:8] = np.fromfile(f, sep=" ", count=2 * self.nx).reshape((self.nx, 2))
+                            self.zcorn[:, j, k, 4:6] = np.fromfile(
+                                f, sep=" ", count=2 * self.nx
+                            ).reshape((self.nx, 2))
+                            self.zcorn[:, j, k, 6:8] = np.fromfile(
+                                f, sep=" ", count=2 * self.nx
+                            ).reshape((self.nx, 2))
                     break
                 line = f.readline()
 
@@ -944,7 +966,12 @@ class PetrelGrid(object):
         faces_nodes, cells_faces = set_faces_nodes(hexahedra)
         self.faces_nodes = faces_nodes
         self.cells_faces = cells_faces
-        return np.asarray(hexahedra, dtype=np.int64), vertices, cells_faces, faces_nodes # FIXME dtype OK ?
+        return (
+            np.asarray(hexahedra, dtype=np.int64),
+            vertices,
+            cells_faces,
+            faces_nodes,
+        )  # FIXME dtype OK ?
 
     def _get_perm(self):
         permx, permy, permz = [], [], []
@@ -960,14 +987,20 @@ class PetrelGrid(object):
                             permz.append(self.permz[i, j, k])
         return permx, permy, permz
 
-    def process_faults(self, cells): # FIXME Unused parameter cells
+    def process_faults(self, cells):  # FIXME Unused parameter cells
         # Note about comments: c = cell, f = face(t), v = vertex
-        new_faces_nodes = self.faces_nodes.tolist()  # List of list, shape = (nb_f, 4), [v_ID] for each v in f
-        cells_faces = self.cells_faces.tolist() # List of list, shape = (nb_c, 6), [f_ID] for each f in c
-        pvertices = self.pvertices # 2D numpy array, shape = (nb_v, 3), [X, Y, Z] for each v
+        new_faces_nodes = (
+            self.faces_nodes.tolist()
+        )  # List of list, shape = (nb_f, 4), [v_ID] for each v in f
+        cells_faces = (
+            self.cells_faces.tolist()
+        )  # List of list, shape = (nb_c, 6), [f_ID] for each f in c
+        pvertices = (
+            self.pvertices
+        )  # 2D numpy array, shape = (nb_v, 3), [X, Y, Z] for each v
         map_edges, map_faces = {}, {}
-        for ix in range(self.nx): # self.nx = nb c along X
-            for iy in range(self.ny): # self.ny = nb c along Y
+        for ix in range(self.nx):  # self.nx = nb c along X
+            for iy in range(self.ny):  # self.ny = nb c along Y
                 # self.corner_ids = np.where(zpil == 9999.0, -1, corner_ids)
                 # Shape of self.corner_ids = (self.nx+1, self.ny+1, self.nz+1, 8), 8 = nb_v in c
                 segsY1, segsY2, segsX1, segsX2 = build_segs(ix, iy, self.corner_ids)

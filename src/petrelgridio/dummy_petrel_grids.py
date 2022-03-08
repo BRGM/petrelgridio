@@ -7,9 +7,9 @@ def petrel_unit_cube(dtype=np.double):
     in the order expected by Petrel"""
     nodes = np.zeros((8, 3), dtype=dtype)
     nodes[1::2, 0] = 1  # right face  x = 1
-    nodes[2:4 , 1] = 1  # back face   y = 1
-    nodes[6:  , 1] = 1  # back face   y = 1
-    nodes[4:  , 2] = 1  # bottom face z = 1 (3rd coord is depth!)
+    nodes[2:4, 1] = 1  # back face   y = 1
+    nodes[6:, 1] = 1  # back face   y = 1
+    nodes[4:, 2] = 1  # bottom face z = 1 (3rd coord is depth!)
     return nodes
 
 
@@ -118,7 +118,14 @@ def faulted_ramp(shape, begin=0.5, voffset=1.0):
 def common_node():
     cube = petrel_unit_cube()
     t = lambda x, y, z: np.array((x, y, z), dtype=cube.dtype)
-    cells = np.array([cube, cube + t(0, 0, 1), cube + t(0, 1, -1), cube + t(0, 1, 0),])
+    cells = np.array(
+        [
+            cube,
+            cube + t(0, 0, 1),
+            cube + t(0, 1, -1),
+            cube + t(0, 1, 0),
+        ]
+    )
     cells.shape = (1, 2, 2, 8, 3)
     cells[0, 1, :, 1::2, 2] -= 0.1  # 1::2 right faces
     return cells

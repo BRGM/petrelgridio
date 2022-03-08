@@ -2,7 +2,7 @@ from petrelgridio.petrel_grid import PetrelGrid
 from petrelgridio.uniform_mesh import HexMesh
 from petrelgridio.vtu import to_vtu
 
-from utils import *
+from utils import DATA_FOLDER, OUTPUT_FOLDER
 
 
 def test_export_to_vtu():

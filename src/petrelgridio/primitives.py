@@ -2,33 +2,36 @@ import numpy as np
 
 
 class Primitive:
-    DIMENSION = 3 # We work exclusively in a 3D space
+    DIMENSION = 3  # We work exclusively in a 3D space
     NB_VERTICES = None
     VTK_ELEMENT_ID = None
 
     @classmethod
     def is_valid(cls):
         """Used to forbid instantiation of incomplete parent types Primitive(*d)"""
-        return cls.NB_VERTICES is not None and \
-               cls.VTK_ELEMENT_ID is not None
-    
+        return cls.NB_VERTICES is not None and cls.VTK_ELEMENT_ID is not None
+
     def __init__(self, vertices_ids):
         assert self.is_valid(), "Instanciation of undefined primitive type is forbidden"
         assert vertices_ids.ndim == 1, "Input array should be 1D"
-        assert vertices_ids.size == self.NB_VERTICES,  "Input array should have 'cls.NB_VERTICES' elements"
-        assert vertices_ids.dtype == np.int64, "Input array should store integer (numpy.int64) indices"
+        assert (
+            vertices_ids.size == self.NB_VERTICES
+        ), "Input array should have 'cls.NB_VERTICES' elements"
+        assert (
+            vertices_ids.dtype == np.int64
+        ), "Input array should store integer (numpy.int64) indices"
         self._vertices = np.copy(vertices_ids)
-        
+
     def __hash__(self):
         return hash((self.__class__.__name__, *self.vertices))
-    
+
     def __eq__(self, other):
         return hash(self) == hash(other)
-    
+
     @property
     def vertices(self):
         return self._vertices
-    
+
     @property
     def nb_vertices(self):
         return self.vertices.size
@@ -46,7 +49,7 @@ class Primitive2d(Primitive):
         New vertices order: the new 1st vertex is the one with the minimum index,
         the 2nd one is its neighbor with the lowest index, and we continue cycling
         until all vertices have been treated.
-        Example: 
+        Example:
         Given facet_vertices = [V0, V1, ..., Vi , ..., Vn] with Vi = min(facet_vertices)
         If Vi-1 >= Vi+1:
             face_vertices = [Vi, Vi+1, ..., Vn, V0, V1, ..., Vi-1]
@@ -69,7 +72,7 @@ class Primitive2d(Primitive):
 class Triangle(Primitive2d):
     NB_VERTICES = 3
     VTK_ELEMENT_ID = 5
-    
+
     def __init__(self, vertices_ids):
         super().__init__(vertices_ids)
 
@@ -77,18 +80,18 @@ class Triangle(Primitive2d):
 class Quad(Primitive2d):
     NB_VERTICES = 4
     VTK_ELEMENT_ID = 9
-    
+
     def __init__(self, vertices_ids):
         super().__init__(vertices_ids)
 
 
 class Primitive3d(Primitive):
     NB_FACES = None
-    
+
     def __init__(self, vertices_ids):
         super().__init__(vertices_ids)
 
-    def facets(self): # FIXME Move to class Primitive: 2D primitives have Edge "facets"
+    def facets(self):  # FIXME Move to class Primitive: 2D primitives have Edge "facets"
         assert False, "Should be reimplemented in each derived type"
 
     @staticmethod
@@ -107,7 +110,9 @@ class Primitive3d(Primitive):
         elif size == 6:
             return Wedge(vertices_ids)
         else:
-            assert False, "Number of vertices does not match any available 3D primitive type"
+            assert (
+                False
+            ), "Number of vertices does not match any available 3D primitive type"
 
 
 class Tetrahedron(Primitive3d):
@@ -120,10 +125,10 @@ class Tetrahedron(Primitive3d):
 
     def facets(self):
         return [
-                Triangle(np.array([self.vertices[1], self.vertices[2], self.vertices[3]])),
-                Triangle(np.array([self.vertices[0], self.vertices[3], self.vertices[2]])),
-                Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[3]])),
-                Triangle(np.array([self.vertices[0], self.vertices[2], self.vertices[1]]))
+            Triangle(np.array([self.vertices[1], self.vertices[2], self.vertices[3]])),
+            Triangle(np.array([self.vertices[0], self.vertices[3], self.vertices[2]])),
+            Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[3]])),
+            Triangle(np.array([self.vertices[0], self.vertices[2], self.vertices[1]])),
         ]
 
 
@@ -137,12 +142,66 @@ class Hexahedron(Primitive3d):
 
     def facets(self):
         return [
-                Quad(np.array([self.vertices[0], self.vertices[1], self.vertices[2], self.vertices[3]])),
-                Quad(np.array([self.vertices[4], self.vertices[5], self.vertices[6], self.vertices[7]])),
-                Quad(np.array([self.vertices[1], self.vertices[2], self.vertices[6], self.vertices[5]])),
-                Quad(np.array([self.vertices[2], self.vertices[6], self.vertices[7], self.vertices[3]])),
-                Quad(np.array([self.vertices[3], self.vertices[7], self.vertices[4], self.vertices[0]])),
-                Quad(np.array([self.vertices[0], self.vertices[1], self.vertices[5], self.vertices[4]]))
+            Quad(
+                np.array(
+                    [
+                        self.vertices[0],
+                        self.vertices[1],
+                        self.vertices[2],
+                        self.vertices[3],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[4],
+                        self.vertices[5],
+                        self.vertices[6],
+                        self.vertices[7],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[1],
+                        self.vertices[2],
+                        self.vertices[6],
+                        self.vertices[5],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[2],
+                        self.vertices[6],
+                        self.vertices[7],
+                        self.vertices[3],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[3],
+                        self.vertices[7],
+                        self.vertices[4],
+                        self.vertices[0],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[0],
+                        self.vertices[1],
+                        self.vertices[5],
+                        self.vertices[4],
+                    ]
+                )
+            ),
         ]
 
 
@@ -156,17 +215,26 @@ class Pyramid(Primitive3d):
 
     def facets(self):
         return [
-                Quad(np.array([self.vertices[0], self.vertices[1], self.vertices[2], self.vertices[3]])),
-                Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[4]])),
-                Triangle(np.array([self.vertices[1], self.vertices[2], self.vertices[4]])),
-                Triangle(np.array([self.vertices[2], self.vertices[3], self.vertices[4]])),
-                Triangle(np.array([self.vertices[3], self.vertices[0], self.vertices[4]]))
+            Quad(
+                np.array(
+                    [
+                        self.vertices[0],
+                        self.vertices[1],
+                        self.vertices[2],
+                        self.vertices[3],
+                    ]
+                )
+            ),
+            Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[4]])),
+            Triangle(np.array([self.vertices[1], self.vertices[2], self.vertices[4]])),
+            Triangle(np.array([self.vertices[2], self.vertices[3], self.vertices[4]])),
+            Triangle(np.array([self.vertices[3], self.vertices[0], self.vertices[4]])),
         ]
 
 
 class Wedge(Primitive3d):
     NB_VERTICES = 6
-    NB_FACES = 5 # FIXME Useful?
+    NB_FACES = 5  # FIXME Useful?
     VTK_ELEMENT_ID = 13
 
     def __init__(self, vertices_ids):
@@ -174,9 +242,36 @@ class Wedge(Primitive3d):
 
     def facets(self):
         return [
-                Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[2]])),
-                Triangle(np.array([self.vertices[3], self.vertices[4], self.vertices[5]])),
-                Quad(np.array([self.vertices[0], self.vertices[2], self.vertices[5], self.vertices[3]])),
-                Quad(np.array([self.vertices[1], self.vertices[4], self.vertices[5], self.vertices[2]])),
-                Quad(np.array([self.vertices[0], self.vertices[3], self.vertices[4], self.vertices[1]]))
+            Triangle(np.array([self.vertices[0], self.vertices[1], self.vertices[2]])),
+            Triangle(np.array([self.vertices[3], self.vertices[4], self.vertices[5]])),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[0],
+                        self.vertices[2],
+                        self.vertices[5],
+                        self.vertices[3],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[1],
+                        self.vertices[4],
+                        self.vertices[5],
+                        self.vertices[2],
+                    ]
+                )
+            ),
+            Quad(
+                np.array(
+                    [
+                        self.vertices[0],
+                        self.vertices[3],
+                        self.vertices[4],
+                        self.vertices[1],
+                    ]
+                )
+            ),
         ]

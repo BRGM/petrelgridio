@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import Enum
 
 from petrelgridio.petrel_grid import PetrelGrid
 import petrelgridio.dummy_petrel_grids as dg
@@ -14,7 +14,7 @@ class BasicTest(Enum):
     SUGAR_BOX = "sugar_box"
     STAIRS = "stairs"
     RAMP = "ramp"
-    
+
     @property
     def name(self):
         return self.value
@@ -44,8 +44,9 @@ def run_basic_test(test):
     pillars = dg.pillars(hexahedra)
 
     # Creates a PetrelGrid object
-    grid = PetrelGrid.build_from_arrays__for_dummy_grids( # FIXME pillars[..., 3:] is empty?
-            pillars[..., :3], pillars[..., 3:], hexahedra[..., 2])
+    grid = PetrelGrid.build_from_arrays__for_dummy_grids(  # FIXME pillars[..., 3:] is empty?
+        pillars[..., :3], pillars[..., 3:], hexahedra[..., 2]
+    )
     hexa, vertices, cells_faces, faces_nodes = grid.process()
     dg.depth_to_elevation(vertices)
 
@@ -68,7 +69,9 @@ def run_basic_test(test):
     print(
         f"Splitted {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell})
+    to_vtu(
+        mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell}
+    )
 
 
 def test_dummy_grids():

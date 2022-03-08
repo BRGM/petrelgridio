@@ -26,11 +26,11 @@ def _compute_connected_components(cdt):
     Returns: the newly created mesh, and the property_map storing for each face
     in the model the id of the component it belongs to.
     """
-    # Inputs 
+    # Inputs
     vertices, triangles, constrained_edges = cdt.as_arrays_with_constraints()
     ## "Creates" 3D vertices from 2D cdt vertices (3rd dim is always 0)
     points_3d = np.zeros((vertices.shape[0], 3), dtype=vertices.dtype)
-    points_3d[:,:2] = vertices
+    points_3d[:, :2] = vertices
 
     # Creates the Surface_mesh
     # FIXME c'est bien vmap, mais est on sur que l'ordre renvoyé par cdt est le
@@ -47,7 +47,7 @@ def _compute_connected_components(cdt):
     nb_comps = PMP.connected_components(mesh, "f:components", constraints)
     return mesh, vmap, nb_comps, mesh.face_property("f:components")
 
-    
+
 def _compute_components_contours(mesh, nb_comps, prop_comps):
     """
     For each component in the mesh, computes the polyline defining its contour.
@@ -85,13 +85,14 @@ def _reorder_outputs_for_petrel_grid(mesh, vmap, prop_comps, comp_contours):
     # Output 1: 2D vertices ordered as follows:
     #   - the arleady existing vertices (the pillars ones) in their original order
     #   - all the vertices created by the triangulation
-    vertices_2d = np.array(
-        [[p3d.x, p3d.y] for p3d in (mesh.point(v) for v in vmap)]
-    )
+    vertices_2d = np.array([[p3d.x, p3d.y] for p3d in (mesh.point(v) for v in vmap)])
     # Output 2: for each mesh face, list of its vertices ids (ie position in vertices_2d)
-    vmap = [v for v in vmap] # We need to easily access element indices
+    vmap = [v for v in vmap]  # We need to easily access element indices
     triangles = np.array(
-        [[vmap.index(v) for v in SM.vertices_around_face(f, mesh)] for f in mesh.faces()]
+        [
+            [vmap.index(v) for v in SM.vertices_around_face(f, mesh)]
+            for f in mesh.faces()
+        ]
     )
     # Output 3: for each mesh face, its component id (ordered as triangles)
     # FIXME any difference between using list comprehension and generator expression?
@@ -100,7 +101,6 @@ def _reorder_outputs_for_petrel_grid(mesh, vmap, prop_comps, comp_contours):
     # vertex ids defining its closed contour
     contours = [[vmap.index(v) for v in c] for c in comp_contours]
     return vertices_2d, triangles, comp_ids, contours
-
 
 
 def mesh(edges_vertices, edges):

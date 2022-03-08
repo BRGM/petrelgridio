@@ -1,16 +1,16 @@
 import numpy as np
 
-from .primitives import * 
+from .primitives import Primitive, Primitive2d, Primitive3d
 
 
 class Connectivity:
     def __init__(self):
-        self._cells_nodes = [] # List of Heaxahedra/Tetrahedra/Wede/Pyramid
+        self._cells_nodes = []  # List of Heaxahedra/Tetrahedra/Wede/Pyramid
         self._cells_faces = []
-        self._faces_ids = {} # Dico <Face : UID>
+        self._faces_ids = {}  # Dico <Face : UID>
         self._faces_nodes = []
-        self._faces_cells = [] # For each face in the model, pair<cell1_id, cell2_id>
-    
+        self._faces_cells = []  # For each face in the model, pair<cell1_id, cell2_id>
+
     @property
     def cells_nodes(self):
         return self._cells_nodes
@@ -18,7 +18,7 @@ class Connectivity:
     @property
     def nb_cells(self):
         return len(self.cells_nodes)
-    
+
     @property
     def faces_nodes(self):
         return self._faces_nodes
@@ -30,7 +30,7 @@ class Connectivity:
     def set_cells_nodes(self, cells):
         self._cells_nodes = [Primitive3d.builder(c) for c in cells]
         self._update_from_cell_nodes()
-        
+
     def _update_from_cell_nodes(self):
         self._update_faces_from_cell_nodes()
         self._collect_cells_faces()
@@ -51,8 +51,8 @@ class Connectivity:
            2) the 2nd one is its neighbor with the lowest UID and 3) continue
            rotating in this direction
         """
-        self._faces_ids = {} # Dico : [Face : Face_UID]
-        self._faces_cells = [] # List : Pair(Cell1_UID, Cell2_UID) for each Face
+        self._faces_ids = {}  # Dico : [Face : Face_UID]
+        self._faces_cells = []  # List : Pair(Cell1_UID, Cell2_UID) for each Face
         for cur_cell_id, cell in enumerate(self.cells_nodes):
             for facet in cell.facets():
                 assert len(self._faces_ids) == len(self._faces_cells)
@@ -63,22 +63,38 @@ class Connectivity:
                 original_face_id = self._faces_ids.get(face, None)
                 # Case 1: 1st time we meet the face
                 if original_face_id is None:
-                    self._faces_ids[face] = face_id # Registers the face
-                    self._faces_cells.append([cur_cell_id, cur_cell_id]) # Creates an "on border" face
+                    self._faces_ids[face] = face_id  # Registers the face
+                    self._faces_cells.append(
+                        [cur_cell_id, cur_cell_id]
+                    )  # Creates an "on border" face
                 # Case 2: We already met the face once
-                else: 
-                    assert self._faces_cells[original_face_id][0] == self._faces_cells[original_face_id][1]
-                    self._faces_cells[original_face_id][1] = cur_cell_id # Updates the ID of the 2nd cell of the face
-                    assert self._faces_cells[original_face_id][0] != self._faces_cells[original_face_id][1]
+                else:
+                    assert (
+                        self._faces_cells[original_face_id][0]
+                        == self._faces_cells[original_face_id][1]
+                    )
+                    self._faces_cells[original_face_id][
+                        1
+                    ] = cur_cell_id  # Updates the ID of the 2nd cell of the face
+                    assert (
+                        self._faces_cells[original_face_id][0]
+                        != self._faces_cells[original_face_id][1]
+                    )
                 assert len(self._faces_ids) == len(self._faces_cells)
         # Checks redundant face_id values
-        assert len(self._faces_ids) == len({f_id: f for (f, f_id) in self._faces_ids.items()})
+        assert len(self._faces_ids) == len(
+            {f_id: f for (f, f_id) in self._faces_ids.items()}
+        )
         # List of faces, ordered by increasing face_id
-        self._faces_nodes = [f for f, _ in sorted(self._faces_ids.items(), key=lambda t: t[1])]
-    
+        self._faces_nodes = [
+            f for f, _ in sorted(self._faces_ids.items(), key=lambda t: t[1])
+        ]
+
     def _collect_cells_faces(self):
-        self._cells_faces = [[self._faces_ids[Primitive2d.get_face_from_facet(f)] for f in c.facets()] 
-                             for c in self.cells_nodes]
+        self._cells_faces = [
+            [self._faces_ids[Primitive2d.get_face_from_facet(f)] for f in c.facets()]
+            for c in self.cells_nodes
+        ]
 
 
 class HybridMesh:
@@ -90,7 +106,7 @@ class HybridMesh:
     @property
     def vertices(self):
         return self._vertices
-    
+
     @property
     def nb_vertices(self):
         return len(self.vertices)
@@ -111,7 +127,7 @@ class HybridMesh:
     def vertices(self, vertices):
         assert vertices.ndim == 2
         assert vertices.shape[1] == Primitive.DIMENSION
-        self._vertices = np.copy(vertices) # FIXME Is copy necessary?
+        self._vertices = np.copy(vertices)  # FIXME Is copy necessary?
 
     def cells_nodes_as_COC(self):
         # Step 1: Compute cells "pointers" (offset of the 1st cell vertex)
@@ -120,7 +136,7 @@ class HybridMesh:
         for cell_idx, cell in enumerate(self.connectivity.cells_nodes):
             counter_vertices += cell.nb_vertices
             pointers[cell_idx] = counter_vertices
-        #Step 2: Write cells vertices indices
+        # Step 2: Write cells vertices indices
         nodes = np.zeros(counter_vertices, dtype=np.int64)
         assert self.connectivity.nb_cells == pointers.size
         cur_offset = 0

@@ -2,7 +2,7 @@ from petrelgridio.petrel_grid import PetrelGrid
 from petrelgridio.raw_mesh import RawMesh
 from petrelgridio.vtu import to_vtu
 
-from utils import *
+from utils import DATA_FOLDER, OUTPUT_FOLDER
 
 
 def test_export_to_vtu():
@@ -19,5 +19,11 @@ def test_export_to_vtu():
     # Creates and exports HybridMesh
     mesh = RawMesh(vertices=vertices, face_nodes=faces_nodes, cell_faces=cells_faces)
     mesh, original_cell = mesh.as_hybrid_mesh()
-    print(f"Splitted {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces")
-    to_vtu(mesh, OUTPUT_FOLDER + name + "_hybridmesh", celldata={"original_cell": original_cell})
+    print(
+        f"Splitted {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
+    )
+    to_vtu(
+        mesh,
+        OUTPUT_FOLDER + name + "_hybridmesh",
+        celldata={"original_cell": original_cell},
+    )
