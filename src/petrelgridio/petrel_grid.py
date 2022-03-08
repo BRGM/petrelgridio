@@ -646,12 +646,14 @@ def new_cell_faces(cells_faces, new_ids):
     return [new_ids[c_faces] for c_faces in cells_faces]
 
 
-def passe_finale(cells_faces, faces_nodes, map_faces):
+def passe_finale(cells_faces, faces_nodes, map_faces, return_kept_faces=False):
     cells_faces = replace_old_new_faces(cells_faces, map_faces)
     new_ids = remove_old_faces(faces_nodes, map_faces)
     cells_faces = new_cell_faces(cells_faces, new_ids)
     new_ids, index = np.unique(new_ids, return_index=True)
     faces_nodes = [faces_nodes[i] for i in index]
+    if return_kept_faces:
+        return cells_faces, faces_nodes, index
     return cells_faces, faces_nodes
 
 
@@ -987,7 +989,9 @@ class PetrelGrid(object):
                             permz.append(self.permz[i, j, k])
         return permx, permy, permz
 
-    def process_faults(self, cells):  # FIXME Unused parameter cells
+    def process_faults(
+        self, cells, return_splitted_faces=False
+    ):  # FIXME Unused parameter cells
         # Note about comments: c = cell, f = face(t), v = vertex
         new_faces_nodes = (
             self.faces_nodes.tolist()
@@ -1033,11 +1037,20 @@ class PetrelGrid(object):
         new_faces_nodes = update_faces_nodes(
             new_faces_nodes, faces_edges, edges, map_edges
         )
-        cells_faces, new_faces_nodes = passe_finale(
-            cells_faces, new_faces_nodes, map_faces
+        splitted = np.zeros(len(new_faces_nodes), dtype="b")
+        for key, values in map_faces.items():
+            splitted[key] = True
+            for f in values:
+                splitted[f] = True
+        cells_faces, new_faces_nodes, kept = passe_finale(
+            cells_faces, new_faces_nodes, map_faces, return_kept_faces=True
         )
+        splitted = splitted[kept]
         map_duplicate_faces = get_duplicate_face_id(new_faces_nodes)
-        cells_faces, new_faces_nodes = passe_finale(
-            cells_faces, new_faces_nodes, map_duplicate_faces
+        cells_faces, new_faces_nodes, kept = passe_finale(
+            cells_faces, new_faces_nodes, map_duplicate_faces, return_kept_faces=True
         )
+        splitted = splitted[kept]
+        if return_splitted_faces:
+            return pvertices, cells_faces, new_faces_nodes, np.nonzero(splitted)[0]
         return pvertices, cells_faces, new_faces_nodes
