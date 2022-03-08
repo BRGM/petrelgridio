@@ -1,3 +1,4 @@
+src/petrelgridio/version.py
 .vscode
 build
 dist
