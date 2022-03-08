@@ -145,25 +145,27 @@ def update_faces_edges(faces_nodes):
         * faces_nodes: list: for each face, its (ordered) list of nodes
 
     Outputs:
-        * all_edges:   unordered list: of all the edges (2-tuple of nodes)
-                       existing in the faces
         * faces_edges: list: for each face: its (ordered) list of edges (does NOT
                        directly stores edges, but their indices in all_edges)
-                       
+        * all_edges:   unordered list: of all the edges (2-tuple of nodes)
+                       existing in the faces
     """
-    faces_edges, all_edges = [], []
-    for f_nodes in faces_nodes:
-        f_edges = []
-        for i in range(len(f_nodes)):
-            e = Edge(f_nodes[i - 1], f_nodes[i])
-            if e not in all_edges:
-                e_id = len(all_edges)
-                all_edges.append(e)
-            else:
-                e_id = all_edges.index(e)
-            f_edges.append(e_id)
-        faces_edges.append(f_edges)
-    return faces_edges, all_edges
+    # as many edge as nodes by faces
+    split_points = np.cumsum([len(nodes) for nodes in faces_nodes])
+    all_edges = np.vstack(
+        [
+            np.hstack([np.roll(nodes, 1)[:, None], np.asarray(nodes)[:, None]])
+            for nodes in faces_nodes
+        ]
+    )
+    assert all_edges.ndim == 2 and all_edges.shape[1] == 2
+    all_edges.sort()  # sort default to sort along last axis
+    all_edges, inverse = np.unique(all_edges, axis=0, return_inverse=True)
+    # FIXME: result could be the following but we must be keep backward compatibility
+    # return np.split(inverse, split_points[:-1]), all_edges
+    return [a.tolist() for a in np.split(inverse, split_points[:-1])], [
+        tuple(a) for a in all_edges
+    ]
 
 
 def set_faces_nodes(cells):
