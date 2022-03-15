@@ -1,3 +1,6 @@
+import os
+import re
+
 import numpy as np
 
 from .edge_utils import *
@@ -8,70 +11,75 @@ from .petrel_mesh import mesh
 # 0--1
 
 
-# def _read_file_argument(grdecl):
-#     kwargs = {}
-#     dirname = os.path.dirname(grdecl)
-#     basename = os.path.basename(grdecl)
-#     newfile = "{0}_PYTHON".format(grdecl)
-#     if not os.path.isfile(newfile):
-#         with open(grdecl) as f:
-#             for line in f:
-#                 if "*" in line:
-#                     rewrite_file(grdecl, newfile)
-#                     grdecl = newfile
-#                     break
-#     else:
-#         grdecl = newfile
+def _read_file_argument(grdecl):
+    # FIXME: use a tempfile.SpooledTemporaryFile of dont rewrite file
+    kwargs = {}
+    dirname = os.path.dirname(grdecl)
+    os.path.basename(grdecl)
+    newfile = ".{0}_rewritten".format(grdecl)
+    if not os.path.isfile(newfile):
+        with open(grdecl) as f:
+            for line in f:
+                if "*" in line:
+                    _rewrite_file(grdecl, newfile)
+                    grdecl = newfile
+                    break
+    else:
+        grdecl = newfile
 
-#     def generator_include(f):
-#         for line in f:
-#             if "INCLUDE" in line:
-#                 yield re.findall("'(.*)'", next(f))[0]
+    def generator_include(f):
+        for line in f:
+            if "INCLUDE" in line:
+                yield re.findall("'(.*)'", next(f))[0]
 
-#     with open(grdecl) as f:
-#         names = list(generator_include(f))
-#     for name in names:
-#         oldfile = "{0}/{1}".format(dirname, name)
-#         newfile = "{0}/{1}_PYTHON".format(dirname, name)
-#         with open(oldfile) as f:
-#             for line in f:
-#                 if "Generated : Petrel" in line:
-#                     break
-#             name_variable = line.split()[0] # TODO Comment ça peut marcher l'appel à line en dehors du code ?!
-#             if os.path.isfile(newfile):
-#                 kwargs[name_variable] = newfile
-#             if not os.path.isfile(newfile):
-#                 for line in f:
-#                     if "*" in line:
-#                         rewrite_file(oldfile, newfile)
-#                         kwargs[name_variable] = newfile
-#                         break
-#                 else:
-#                     kwargs[name_variable] = oldfile
-#     return grdecl, kwargs
+    with open(grdecl) as f:
+        names = list(generator_include(f))
+    for name in names:
+        oldfile = "{0}/{1}".format(dirname, name)
+        newfile = "{0}/{1}_rewritten".format(dirname, name)
+        with open(oldfile) as f:
+            for line in f:
+                if "Generated : Petrel" in line:
+                    break
+            name_variable = line.split()[
+                0
+            ]  # TODO Comment ça peut marcher l'appel à line en dehors du code ?!
+            if os.path.isfile(newfile):
+                kwargs[name_variable] = newfile
+            if not os.path.isfile(newfile):
+                for line in f:
+                    if "*" in line:
+                        _rewrite_file(oldfile, newfile)
+                        kwargs[name_variable] = newfile
+                        break
+                else:
+                    kwargs[name_variable] = oldfile
+    return grdecl, kwargs
 
 
-# def _rewrite_file(fichier, fichier_out):
-#     fout = open(fichier_out, "w")
-#     with open(fichier) as f:
-#         for line in f:
-#             if "*" in line:
-#                 data = []
-#                 line = line.split()
-#                 for value in line:
-#                     if value == "/":
-#                         data.append(value)
-#                     elif "*" in value:
-#                         nbr, value = value.split("*") # TODO Ca va planter sur le premier ficher d'exemple
-#                         value = float(value)
-#                         nbr = int(nbr)
-#                         data.extend(nbr * [value])
-#                     else:
-#                         data.append(float(value))
-#                 fout.write("{0}\n".format(" ".join(list(map(str, data)))))
-#             elif line.strip() and not line.startswith("--"):
-#                 fout.write(line)
-#     fout.close()
+def _rewrite_file(fichier, fichier_out):
+    fout = open(fichier_out, "w")
+    with open(fichier) as f:
+        for line in f:
+            if "*" in line:
+                data = []
+                line = line.split()
+                for value in line:
+                    if value == "/":
+                        data.append(value)
+                    elif "*" in value:
+                        nbr, value = value.split(
+                            "*"
+                        )  # TODO Ca va planter sur le premier ficher d'exemple
+                        value = float(value)
+                        nbr = int(nbr)
+                        data.extend(nbr * [value])
+                    else:
+                        data.append(float(value))
+                fout.write("{0}\n".format(" ".join(list(map(str, data)))))
+            elif line.strip() and not line.startswith("--"):
+                fout.write(line)
+    fout.close()
 
 
 def pillar_edges(corner_ids, i, j, nz):
@@ -700,19 +708,15 @@ class PetrelGrid(object):
         #  - Même chose pour les NZ - 1 plans suivant
         with open(mainfile) as f:
             for line in f:
-                # if line.startswith('MAPAXES'):
-                # self.mapaxes = np.asarray(next(f).strip().split(' ')[:-1],
-                # 'float')
+                if line.startswith("MAPAXES"):
+                    self.mapaxes = np.asarray(next(f).strip().split(" ")[:-1], "float")
                 if line.startswith("SPECGRID"):
+                    shape = tuple(int(s) for s in next(f).strip().split(" ")[:3])
                     self.specgrid = (
                         self.nx,
                         self.ny,
                         self.nz,
-                    ) = np.asarray(  # FIXME C'est pas très jojo tout ça...
-                        # next(f).strip().split(" ")[:-3], "int" # FIXME Dans mes exemples il n'y a que 2 valeurs à supprimer
-                        next(f).strip().split(" ")[:-2],
-                        "int",
-                    )
+                    ) = shape
         #  Tableau des coordonnées. Shape ((NX+1)*(NY+1), 6)
         coord = self._read_coord(coordfile)
         pillars = coord.reshape((self.nx + 1, self.ny + 1, 6), order="F")
@@ -802,8 +806,9 @@ class PetrelGrid(object):
 
     @classmethod
     def build_from_files(self, mainfile, **kwargs):
+        new_path, kwargs = _read_file_argument(mainfile)
         grid = PetrelGrid()
-        grid.build_grid(*grid.extract_data_from_files(mainfile, **kwargs))
+        grid.build_grid(*grid.extract_data_from_files(new_path, **kwargs))
         return grid
 
     @classmethod
