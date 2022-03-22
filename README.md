@@ -1,36 +1,34 @@
 # PetrelGridIO
-Exports a Petrel pillar grid (.grdecl file) into a .vtu file that can be loaded in Paraview.
+Exports a Petrel pillar grid (`.grdecl` file) into a `.vtu` file that can be loaded in Paraview.
 
-## Requirements
-PetrelGridIO (directly) depends on:
-* [vtkwriters](https://gitlab.brgm.fr/brgm/modelisation-geologique/vtkwriters) >= 0.0.6
-* [pyCGAL](https://gitlab.brgm.fr/brgm/geomodelling/internal/pycgal) >= 0.2.18
+## Installation
+### Requirements
+`petrelgridio` depends on:
+* vtkwriters >= 0.0.6
+* pyCGAL >= 0.2.18
+* verstr >= 0.1.2
 
-Note that these libraries have their own dependencies that you need to install too (see their `README.md` for installing them).
-
-## Getting started
-Once you have installed `vtkwriters`, `pycgal` and their dependencies, you can install `petrelgridio`:
+### Install from PyPI
 ```bash
-# Install the pre-built wheel provided on the BRGM Nexus
-python -m pip install petrelgridio -i https://nexus.brgm.fr/repository/pypi-all/simple
+python -m pip install verstr vtkwriters pycgal petrelgridio
 ```
 
-Alternatively, if you wish to install `petrelgridio` from sources, you can use the following:
-```bash
-# Install from sources
-git clone https://gitlab.brgm.fr/brgm/modelisation-geologique/essais/nicolas/petrelgridio
-cd petrelgridio
-python -m pip install .
-```
+## Basic example
+```python
+from petrelgridio.petrel_grid import PetrelGrid
+from petrelgridio.raw_mesh import RawMesh
+from petrelgridio.vtu import to_vtu
 
-Run the tests:
-```bash
-python -m pytest # From the project root
+filename_in = "path/to/file.grdecl"
+filename_out = "where/to/store/file.vtu"
+grid = PetrelGrid.build_from_files(filename_in)
+hexa, _ = grid.process()
+vertices, cells_faces, faces_nodes = grid.process_faults(hexa)
+mesh = RawMesh(vertices, faces_nodes, cells_faces)
+to_vtu(mesh, filename_out)
 ```
 
 ## Authors
-* Nicolas Clausolles (DNG/TIA)
-* Simon Lopez (DGR/CIM)
-
-## Bug reports & improvements
-Use GitLab [issues](https://gitlab.brgm.fr/brgm/modelisation-geologique/essais/nicolas/petrelgridio/-/issues)
+* Jean-Pierre Vergnes (BRGM - DEPA/GDR)
+* Nicolas Clausolles (BRGM - DNG/TIA)
+* Simon Lopez (BRGM - DGR/CIM)

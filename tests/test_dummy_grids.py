@@ -6,7 +6,7 @@ from petrelgridio.uniform_mesh import HexMesh
 from petrelgridio.raw_mesh import RawMesh
 from petrelgridio.vtu import to_vtu
 
-from tests.utils import OUTPUT_FOLDER
+from utils import OUTPUT_FOLDER
 
 
 class BasicTest(Enum):
