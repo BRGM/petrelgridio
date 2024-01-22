@@ -21,11 +21,11 @@ class BasicTest(Enum):
 
     @property
     def file_name(self):
-        """ Returns the name to give to the output VTU file (without the".vtu" extension)"""
+        """Returns the name to give to the output VTU file (without the".vtu" extension)"""
         return OUTPUT_FOLDER / self.name
 
     def create_data(self):
-        """ Returns the input list of hexahedra associated with the test"""
+        """Returns the input list of hexahedra associated with the test"""
         if self is BasicTest.COMMON_NODE:
             return dg.common_node()
         elif self is BasicTest.SUGAR_BOX:
@@ -70,7 +70,9 @@ def run_basic_test(test):
         f"Splitted {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
     to_vtu(
-        mesh, str(test.file_name) + "_hybridmesh", celldata={"original_cell": original_cell}
+        mesh,
+        str(test.file_name) + "_hybridmesh",
+        celldata={"original_cell": original_cell},
     )
 
 

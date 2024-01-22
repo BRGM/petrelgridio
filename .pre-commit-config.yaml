@@ -15,7 +15,7 @@ repos:
         files: \.py$
         # --remove-all-unused-imports is not used until issue #14 is solved
         args: ["--in-place", "--expand-star-imports", "--remove-unused-variables"]
--   repo: https://github.com/psf/black
-    rev: 20.8b1
+-   repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 22.10.0
     hooks:
     -   id: black

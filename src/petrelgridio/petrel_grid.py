@@ -813,7 +813,7 @@ class PetrelGrid(object):
 
     @classmethod
     def build_from_arrays__for_dummy_grids(self, pillar_tops, pillar_bottoms, zcorn):
-        """ Only used for test dummy_grid from MeshTools """
+        """Only used for test dummy_grid from MeshTools"""
         # FIXME Fixer les fixme suivants (faire attention, il en existe peut-être plus)
         #       Appel du type : PetrelGrid.build_from_arrays__for_dummy_grids(p1, p2, p3)
         #       => les self.attributs désignent des attributs de classe et non d'instance ! <smiley_qui_vomit> !
