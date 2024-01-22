@@ -10,7 +10,7 @@ def test_export_to_vtu():
     name = "Simple20x20x5_Fault.grdecl"
 
     # Creates a PetrelGrid object
-    grid = PetrelGrid.build_from_files(DATA_FOLDER + name)
+    grid = PetrelGrid.build_from_files(DATA_FOLDER / name)
     hexa, vertices, cell_faces, face_nodes = grid.process()
 
     # Without faults
@@ -19,7 +19,7 @@ def test_export_to_vtu():
     print(
         f"Original {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} hexaedra, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, OUTPUT_FOLDER + name + "_rawmesh")
+    to_vtu(mesh, OUTPUT_FOLDER / (name + "_rawmesh"))
 
     # Split at faults
     # Creates and exports RawMesh (from splitted PetrelGrid)
@@ -28,4 +28,4 @@ def test_export_to_vtu():
     print(
         f"Splitted {name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, OUTPUT_FOLDER + name + "_rawmesh_faulted")
+    to_vtu(mesh, OUTPUT_FOLDER / (name + "_rawmesh_faulted"))

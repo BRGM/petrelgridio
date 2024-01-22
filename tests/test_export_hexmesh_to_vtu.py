@@ -10,9 +10,9 @@ def test_export_to_vtu():
     name = "Simple20x20x5_Fault.grdecl"
 
     # Creates a PetrelGrid object
-    grid = PetrelGrid.build_from_files(DATA_FOLDER + name)
+    grid = PetrelGrid.build_from_files(DATA_FOLDER / name)
     hexa, vertices, _, _ = grid.process()
 
     ## Creates and exports HexMesh
     mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, OUTPUT_FOLDER + name + "_hexmesh")
+    to_vtu(mesh, OUTPUT_FOLDER / (name + "_hexmesh"))

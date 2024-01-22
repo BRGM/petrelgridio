@@ -22,7 +22,7 @@ class BasicTest(Enum):
     @property
     def file_name(self):
         """ Returns the name to give to the output VTU file (without the".vtu" extension)"""
-        return OUTPUT_FOLDER + self.name
+        return OUTPUT_FOLDER / self.name
 
     def create_data(self):
         """ Returns the input list of hexahedra associated with the test"""
@@ -53,13 +53,13 @@ def run_basic_test(test):
     # Without faults
     ## Creates and exports HexMesh
     mesh = HexMesh(vertices, hexa)
-    to_vtu(mesh, test.file_name + "_hexmesh")
+    to_vtu(mesh, str(test.file_name) + "_hexmesh")
     ## Creates and exports RawMesh
     mesh = RawMesh(vertices=vertices, face_nodes=faces_nodes, cell_faces=cells_faces)
     print(
         f"Original {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} hexaedra, {mesh.nb_faces} faces"
     )
-    to_vtu(mesh, test.file_name + "_rawmesh")
+    to_vtu(mesh, str(test.file_name) + "_rawmesh")
 
     # Split at faults
     # Creates and exports HybridMesh
@@ -70,7 +70,7 @@ def run_basic_test(test):
         f"Splitted {test.name} mesh with: {mesh.nb_vertices} vertices, {mesh.nb_cells} cells, {mesh.nb_faces} faces"
     )
     to_vtu(
-        mesh, test.file_name + "_hybridmesh", celldata={"original_cell": original_cell}
+        mesh, str(test.file_name) + "_hybridmesh", celldata={"original_cell": original_cell}
     )
 
 

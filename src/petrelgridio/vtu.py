@@ -4,6 +4,7 @@ from .raw_mesh import RawMesh
 
 
 def to_vtu(mesh, filename, **kwargs):
+    filename = str(filename)
     if type(mesh) is RawMesh:
         cell_faces = mesh.cell_faces
         face_nodes = mesh.face_nodes

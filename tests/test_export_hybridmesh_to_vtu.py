@@ -10,7 +10,7 @@ def test_export_to_vtu():
     name = "Simple20x20x5_Fault.grdecl"
 
     # Creates a PetrelGrid object
-    grid = PetrelGrid.build_from_files(DATA_FOLDER + name)
+    grid = PetrelGrid.build_from_files(DATA_FOLDER / name)
     hexa, vertices, _, _ = grid.process()
 
     # Split at faults
@@ -24,6 +24,6 @@ def test_export_to_vtu():
     )
     to_vtu(
         mesh,
-        OUTPUT_FOLDER + name + "_hybridmesh",
+        OUTPUT_FOLDER / (name + "_hybridmesh"),
         celldata={"original_cell": original_cell},
     )

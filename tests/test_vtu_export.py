@@ -30,4 +30,4 @@ def test_export_vtu():
         cell_faces=[(0, 1, 2, 3)],
     )
 
-    to_vtu(mesh, OUTPUT_FOLDER + "foo.vtu")
+    to_vtu(mesh, OUTPUT_FOLDER / "foo.vtu")

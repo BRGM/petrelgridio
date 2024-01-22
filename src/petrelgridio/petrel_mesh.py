@@ -90,7 +90,7 @@ def _reorder_outputs_for_petrel_grid(mesh, vmap, prop_comps, comp_contours):
     vmap = [v for v in vmap]  # We need to easily access element indices
     triangles = np.array(
         [
-            [vmap.index(v) for v in SM.vertices_around_face(f, mesh)]
+            [vmap.index(v) for v in SM.vertices_around_face(mesh.halfedge(f), mesh)]
             for f in mesh.faces()
         ]
     )
